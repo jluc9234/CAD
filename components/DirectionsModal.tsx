@@ -20,8 +20,8 @@ const DirectionsModal: React.FC<DirectionsModalProps> = ({ isOpen, onClose, loca
   const [titleGradient] = useState(() => getRandomGradient());
   const [buttonGradient, setButtonGradient] = useState(() => getRandomGradient());
 
-  // Use the REACT_APP_ prefix for create-react-app to recognize the env variable
-  const mapboxAccessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN;
+  // Access the token using Vite's standard method
+  const mapboxAccessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
   useEffect(() => {
     if (isOpen && mapContainerRef.current) {
@@ -140,3 +140,4 @@ const DirectionsModal: React.FC<DirectionsModalProps> = ({ isOpen, onClose, loca
 };
 
 export default DirectionsModal;
+
