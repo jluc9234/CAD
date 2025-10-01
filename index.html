@@ -6,15 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Create-A-Date: AI Dating</title>
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Mapbox -->
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet" />
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
 
@@ -33,7 +30,6 @@
       }
     </style>
 
-    <!-- Import map of modules -->
     <script type="importmap">
     {
       "imports": {
@@ -53,17 +49,20 @@
   <body>
     <div id="root"></div>
 
-    <!-- Include only client-side PayPal SDK -->
     <script>
-      // Inject the client-side PayPal client ID from Vite environment variable
       const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
-      const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}`;
-      script.async = true;
-      document.body.appendChild(script);
+      
+      if (PAYPAL_CLIENT_ID) {
+        const script = document.createElement('script');
+        // ✅ Correction: Added &currency=USD
+        script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
+        script.async = true;
+        document.body.appendChild(script);
+      } else {
+        console.error("VITE_PAYPAL_CLIENT_ID is not set.");
+      }
     </script>
 
-    <!-- Load main React app -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
