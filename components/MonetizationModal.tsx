@@ -1,6 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePremium } from '../contexts/PremiumContext';
 import { SparklesIcon, getRandomGradient } from '../constants';
+
+// Declare the paypal object on the window to satisfy TypeScript
+declare global {
+  interface Window {
+    paypal: any;
+  }
+}
 
 interface MonetizationModalProps {
   isOpen: boolean;
@@ -12,23 +19,24 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
 
   const [iconGradient] = useState(() => getRandomGradient());
   const [titleGradient] = useState(() => getRandomGradient());
-  const [buttonGradient, setButtonGradient] = useState(() => getRandomGradient());
   const [loading, setLoading] = useState(false);
 
-  if (!isOpen) return null;
-
+  // This handleApprove function is now stable and can be used in the effect
   const handleApprove = async (orderID: string) => {
     setLoading(true);
     try {
-      const res = await fetch('/.netlify/functions/verifyPayment', {
+      const res = await fetch('/.netlify/functions/verify-payment', { // Corrected function name
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderID }),
       });
       const data = await res.json();
-      if (data.success) {
+      
+      // Assuming your server function returns a status field
+      if (data.status === 'COMPLETED') { 
         setPremium(true);
         onClose();
+        alert('Payment successful! Premium features unlocked.');
       } else {
         alert('Payment could not be verified. Please try again.');
       }
@@ -39,6 +47,42 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
       setLoading(false);
     }
   };
+
+  // ✅ Use useEffect to render the PayPal button safely
+  useEffect(() => {
+    // Don't do anything if the modal isn't open or if PayPal script isn't loaded yet
+    if (!isOpen || !window.paypal) {
+      return;
+    }
+
+    // Clear the container in case of re-renders
+    const container = document.getElementById('paypal-button-container');
+    if (container) container.innerHTML = '';
+
+    window.paypal.Buttons({
+      style: { layout: 'vertical', color: 'blue', shape: 'rect', label: 'pay' },
+      createOrder: (data: any, actions: any) => {
+        return actions.order.create({
+          purchase_units: [{
+            amount: { value: '10.00' }
+          }]
+        });
+      },
+      // The onApprove function can now directly call your handleApprove function
+      onApprove: (data: any, actions: any) => {
+        return actions.order.capture().then((details: any) => {
+          handleApprove(details.id); // 'details.id' is the orderID
+        });
+      },
+      onError: (err: any) => {
+        console.error("PayPal Button Error:", err);
+        alert("An error occurred with your payment.");
+      }
+    }).render('#paypal-button-container');
+
+  }, [isOpen]); // Re-run this effect if the `isOpen` status changes
+
+  if (!isOpen) return null;
 
   const features = [
     "Unlimited Recalls: Undo your last swipe.",
@@ -68,6 +112,8 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
             </div>
           ))}
         </div>
+        
+        {loading && <div className="text-center text-slate-300">Processing payment...</div>}
 
         <div className="mt-8">
           <div id="paypal-button-container"></div>
@@ -77,31 +123,6 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
       </div>
-
-      {/* Load PayPal Buttons */}
-      <script dangerouslySetInnerHTML={{
-        __html: `
-          if (window.paypal) {
-            paypal.Buttons({
-              style: { layout: 'vertical', color: 'blue', shape: 'rect', label: 'pay' },
-              createOrder: function(data, actions) {
-                return actions.order.create({
-                  purchase_units: [{
-                    amount: { value: '10.00' }
-                  }]
-                });
-              },
-              onApprove: function(data, actions) {
-                return actions.order.capture().then(function(details) {
-                  window.handleApprove(details.id);
-                });
-              }
-            }).render('#paypal-button-container');
-
-            window.handleApprove = ${handleApprove.toString()};
-          }
-        `
-      }} />
     </div>
   );
 };
