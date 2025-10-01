@@ -10,12 +10,8 @@ export default defineConfig(({ mode }) => {
   return {
     base: "/",
     plugins: [react()],
-    define: {
-      // Expose the API key to the client-side code for the Gemini service
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      // Expose the API key for Mapbox service
-      'process.env.MAPBOX_ACCESS_TOKEN': JSON.stringify(env.MAPBOX_ACCESS_TOKEN),
-    },
+    // You no longer need the 'define' block because you are using Vite's standard
+    // method for accessing environment variables (import.meta.env.VITE_...)
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
