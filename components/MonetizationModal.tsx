@@ -21,24 +21,25 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
   const [titleGradient] = useState(() => getRandomGradient());
   const [loading, setLoading] = useState(false);
 
-  // This handleApprove function is now stable and can be used in the effect
+  // This function handles the server-side verification after payment approval
   const handleApprove = async (orderID: string) => {
     setLoading(true);
     try {
-      const res = await fetch('/.netlify/functions/verify-payment', { // Corrected function name
+      const res = await fetch('/.netlify/functions/verify-payment', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderID }),
       });
       const data = await res.json();
       
-      // Assuming your server function returns a status field
-      if (data.status === 'COMPLETED') { 
+      // Check for the { success: true } response from your new function
+      if (data.success) { 
         setPremium(true);
         onClose();
         alert('Payment successful! Premium features unlocked.');
       } else {
-        alert('Payment could not be verified. Please try again.');
+        const message = data.message || 'Payment could not be verified.';
+        alert(message);
       }
     } catch (err) {
       console.error(err);
@@ -48,14 +49,12 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
     }
   };
 
-  // ✅ Use useEffect to render the PayPal button safely
+  // Use useEffect to render the PayPal button safely
   useEffect(() => {
-    // Don't do anything if the modal isn't open or if PayPal script isn't loaded yet
     if (!isOpen || !window.paypal) {
       return;
     }
 
-    // Clear the container in case of re-renders
     const container = document.getElementById('paypal-button-container');
     if (container) container.innerHTML = '';
 
@@ -68,10 +67,9 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
           }]
         });
       },
-      // The onApprove function can now directly call your handleApprove function
       onApprove: (data: any, actions: any) => {
         return actions.order.capture().then((details: any) => {
-          handleApprove(details.id); // 'details.id' is the orderID
+          handleApprove(details.id);
         });
       },
       onError: (err: any) => {
@@ -80,7 +78,7 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
       }
     }).render('#paypal-button-container');
 
-  }, [isOpen]); // Re-run this effect if the `isOpen` status changes
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -113,7 +111,7 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
           ))}
         </div>
         
-        {loading && <div className="text-center text-slate-300">Processing payment...</div>}
+        {loading && <div className="text-center text-slate-300 py-2">Verifying payment...</div>}
 
         <div className="mt-8">
           <div id="paypal-button-container"></div>
