@@ -7,27 +7,17 @@
     <title>Create-A-Date: AI Dating</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet" />
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
 
     <meta name="theme-color" content="#0f172a">
-
     <style>
-      body {
-        font-family: 'Inter', sans-serif;
-      }
-      .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-      }
-      .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-      }
+      body { font-family: 'Inter', sans-serif; }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 
     <script type="importmap">
@@ -49,12 +39,11 @@
   <body>
     <div id="root"></div>
 
-    <script>
+    <script type="module">
       const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
       
       if (PAYPAL_CLIENT_ID) {
         const script = document.createElement('script');
-        // ✅ Correction: Added &currency=USD
         script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
         script.async = true;
         document.body.appendChild(script);
