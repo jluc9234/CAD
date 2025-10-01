@@ -13,6 +13,8 @@ export default defineConfig(({ mode }) => {
     define: {
       // Expose the API key to the client-side code for the Gemini service
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      // Expose the API key for Mapbox service
+      'process.env.MAPBOX_ACCESS_TOKEN': JSON.stringify(env.MAPBOX_ACCESS_TOKEN),
     },
     resolve: {
       alias: {
