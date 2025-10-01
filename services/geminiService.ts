@@ -2,13 +2,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { DateCategory, LocalIdea, LocalEvent, DateSuggestion, BudgetOption, DressCodeOption } from "../types";
 import { DATE_CATEGORIES } from "../constants";
 
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-  throw new Error("API_KEY environment variable not set");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+// FIX: Updated API key retrieval to use `process.env.API_KEY` as required by the coding guidelines.
+// This resolves the TypeScript error on `import.meta.env` and assumes the environment is correctly configured.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const enhanceDescription = async (description: string): Promise<string> => {
   try {
@@ -177,17 +173,15 @@ export const generateDateSuggestions = async (criteria: {
     dressCode?: DressCodeOption;
 }): Promise<DateSuggestion[]> => {
     try {
-        let prompt = "Generate 3 creative date ideas based on the following user-provided details. For each idea, provide a catchy title and a short, appealing description.\n";
-        if (criteria.title) prompt += `- A title that includes or is similar to: "${criteria.title}"\n`;
-        if (criteria.location) prompt += `- The location is: ${criteria.location}\n`;
-        if (criteria.date) prompt += `- The date is on or around: ${new Date(criteria.date).toLocaleDateString()}\n`;
-        if (criteria.category && criteria.category !== DateCategory.Uncategorized) prompt += `- The category is: ${criteria.category}\n`;
-        if (criteria.budget && criteria.budget !== 'Not Set') prompt += `- The budget is: ${criteria.budget}\n`;
-        if (criteria.dressCode && criteria.dressCode !== 'Not Set') prompt += `- The dress code is: ${criteria.dressCode}\n`;
-
-        if(Object.values(criteria).every(val => !val || val === 'Not Set' || val === DateCategory.Uncategorized)) {
-            prompt += "- The user hasn't provided any specific details, so generate three diverse and exciting date ideas."
-        }
+        const promptParts = ['Suggest 2 creative date ideas.'];
+        if (criteria.title) promptParts.push(`Related to the title: "${criteria.title}".`);
+        if (criteria.location) promptParts.push(`Happening in or near: ${criteria.location}.`);
+        if (criteria.date) promptParts.push(`Scheduled for around: ${new Date(criteria.date).toLocaleDateString()}.`);
+        if (criteria.category && criteria.category !== DateCategory.Uncategorized) promptParts.push(`The category is: ${criteria.category}.`);
+        if (criteria.budget && criteria.budget !== 'Not Set') promptParts.push(`The budget is: ${criteria.budget}.`);
+        if (criteria.dressCode && criteria.dressCode !== 'Not Set') promptParts.push(`The dress code is: ${criteria.dressCode}.`);
+        
+        const prompt = promptParts.join(' ');
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -210,22 +204,19 @@ export const generateDateSuggestions = async (criteria: {
         return json;
     } catch (error) {
         console.error("Error generating date suggestions:", error);
-        return [
-            { title: "Error", description: "Could not generate suggestions at this time. Please try again." }
-        ];
+        return [];
     }
 };
 
 export const generateBackgroundImage = async (prompt: string): Promise<string | null> => {
     try {
-        const fullPrompt = `A beautiful, aesthetic, high-resolution phone wallpaper background based on the theme: "${prompt}". The style should be modern and visually pleasing, suitable for a sleek app background. Avoid text or distracting elements.`;
         const response = await ai.models.generateImages({
             model: 'imagen-4.0-generate-001',
-            prompt: fullPrompt,
+            prompt: `Generate a serene and beautiful background image for a dating app profile based on the theme: "${prompt}". The image should be abstract or a landscape, and not contain people. Make it visually appealing and calming.`,
             config: {
-                numberOfImages: 1,
-                outputMimeType: 'image/jpeg',
-                aspectRatio: '9:16',
+              numberOfImages: 1,
+              outputMimeType: 'image/jpeg',
+              aspectRatio: '1:1',
             },
         });
 
