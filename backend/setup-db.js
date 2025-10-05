@@ -6,7 +6,7 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-const schemaPath = path.join(__dirname, '..', 'db', 'schema.sql');
+const schemaPath = path.join(__dirname, 'db', 'schema.sql');
 
 async function setupDB() {
   try {
