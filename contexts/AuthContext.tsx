@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { User } from '../types';
 
@@ -11,7 +13,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:3001/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {

@@ -1,10 +1,12 @@
+/// <reference types="vite/client" />
+
 import React, { useState, useMemo, useEffect } from 'react';
 import ProfileCard from './ProfileCard';
 import { User } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:3001/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const SwipeDeck: React.FC = () => {
   const { currentUser } = useAuth();
