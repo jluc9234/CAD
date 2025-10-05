@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { User } from '../types';
-import { MOCK_USERS } from '../data/mockData';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -12,57 +11,65 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:3001/api';
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    try {
-      const item = window.localStorage.getItem('currentUser');
-      return item ? JSON.parse(item) : null;
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
+    const token = localStorage.getItem('token');
+    // For simplicity, don't fetch on init, assume user logs in again if needed
+    return null;
   });
 
   const login = async (email: string, pass: string) => {
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
-    if (user) {
-        setCurrentUser(user);
-        window.localStorage.setItem('currentUser', JSON.stringify(user));
+    const response = await fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await response.json();
+    if (response.ok) {
+      setCurrentUser(data.user);
+      localStorage.setItem('token', data.token);
     } else {
-       throw new Error("Invalid email or password");
+      throw new Error(data.error);
     }
   };
 
   const signup = async (name: string, email: string, pass: string) => {
-    if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-        throw new Error("An account with this email already exists.");
+    const response = await fetch(`${API_BASE}/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password: pass })
+    });
+    const data = await response.json();
+    if (response.ok) {
+      setCurrentUser(data.user);
+      localStorage.setItem('token', data.token);
+    } else {
+      throw new Error(data.error);
     }
-    const newUser: User = {
-        id: Date.now(),
-        name,
-        email,
-        password: pass,
-        age: 18, // Default age
-        bio: ``,
-        images: [`https://picsum.photos/seed/${Date.now()}/800/1200`],
-        interests: [],
-    };
-    setUsers(prevUsers => [...prevUsers, newUser]);
-    setCurrentUser(newUser);
-    window.localStorage.setItem('currentUser', JSON.stringify(newUser));
   };
 
   const logout = () => {
     setCurrentUser(null);
-    window.localStorage.removeItem('currentUser');
+    localStorage.removeItem('token');
   };
   
-  const updateUser = (updatedUser: User) => {
+  const updateUser = async (updatedUser: User) => {
     if (!currentUser || currentUser.id !== updatedUser.id) return;
-    setCurrentUser(updatedUser);
-    setUsers(prevUsers => prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u));
-    window.localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE}/user/${updatedUser.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(updatedUser)
+    });
+    if (response.ok) {
+      const data = await response.json();
+      setCurrentUser(data);
+    } else {
+      // Handle error, perhaps throw
+      throw new Error('Update failed');
+    }
   };
 
   return (

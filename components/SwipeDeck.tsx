@@ -1,23 +1,35 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import ProfileCard from './ProfileCard';
-import { MOCK_USERS } from '../data/mockData';
 import { User } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:3001/api';
+
 const SwipeDeck: React.FC = () => {
   const { currentUser } = useAuth();
   const { addNotification } = useNotification();
+  const [users, setUsers] = useState<User[]>([]);
+  
+  useEffect(() => {
+    if (!currentUser) return;
+    const token = localStorage.getItem('token');
+    fetch(`${API_BASE}/users`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(setUsers)
+      .catch(console.error);
+  }, [currentUser]);
   
   const swipeableUsers = useMemo(() => 
-    MOCK_USERS
-        .filter(u => u.id !== currentUser?.id)
+    users
         .map(user => ({
             ...user,
             // Generate a pseudo-random but stable match percentage for each user
             matchPercentage: (user.id * 37 + (currentUser?.id || 0) * 29) % 41 + 60
         }))
-  , [currentUser]);
+  , [users, currentUser]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
