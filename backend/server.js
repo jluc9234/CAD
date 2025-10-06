@@ -146,6 +146,20 @@ app.get('/api/premium-status', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/upgrade-premium', authenticateToken, async (req, res) => {
+  const { paymentId, expiresAt } = req.body; // Adjust based on PayPal response
+  try {
+    await pool.query(`
+      INSERT INTO "UserPremium" (user_id, is_premium, expires_at) 
+      VALUES ($1, true, $2) 
+      ON CONFLICT (user_id) DO UPDATE SET is_premium = true, expires_at = $2
+    `, [req.user.id, expiresAt]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
