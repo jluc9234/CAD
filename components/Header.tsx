@@ -40,7 +40,10 @@ const Header: React.FC<HeaderProps> = ({ onPremiumClick, setActiveView }) => {
                 )}
                 
                 {/* Notification Bell */}
-                <button className="relative p-2 text-slate-400 hover:text-white transition-colors">
+                <button 
+                    onClick={() => setActiveView('matches')}
+                    className="relative p-2 text-slate-400 hover:text-white transition-colors"
+                >
                     <BellIcon className="w-6 h-6" />
                     {notifications.length > 0 && (
                         <div className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">
