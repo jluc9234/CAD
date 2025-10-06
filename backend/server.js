@@ -123,16 +123,38 @@ app.get('/api/date-ideas', authenticateToken, async (req, res) => {
 
 app.post('/api/date-ideas', authenticateToken, async (req, res) => {
   const { title, description, category, location, date, budget, dressCode } = req.body;
+  console.log('Date posting attempt:', { title, description, category, userId: req.user.id });
+  
   try {
     const userResult = await pool.query('SELECT name, images FROM "Users" WHERE id = $1', [req.user.id]);
+    console.log('User query result:', userResult.rows.length, 'rows');
+    
+    if (userResult.rows.length === 0) {
+      console.log('User not found for id:', req.user.id);
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
     const user = userResult.rows[0];
+    console.log('User found:', user.name);
+    
+    // Handle PostgreSQL array - get first image or use null
+    let authorImage = null;
+    if (user && user.images && Array.isArray(user.images) && user.images.length > 0) {
+      authorImage = user.images[0];
+    }
+    console.log('Author image:', authorImage);
+    
+    console.log('Inserting date idea...');
     const result = await pool.query(`
-      INSERT INTO "DateIdeas" (title, description, category, authorId, authorName, authorImage, location, date, budget, dressCode) 
+      INSERT INTO "DateIdeas" (title, description, category, "authorId", "authorName", "authorImage", location, date, budget, "dressCode") 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
       RETURNING *
-    `, [title, description, category, req.user.id, user.name, user.images[0], location, date, budget, dressCode]);
+    `, [title, description, category, req.user.id, user.name, authorImage, location, date, budget, dressCode]);
+    
+    console.log('Insert successful:', result.rows[0]);
     res.json(result.rows[0]);
   } catch (error) {
+    console.error('Error posting date:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
