@@ -29,44 +29,43 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// In-memory storage for testing
-let dateIdeas = [];
-let users = [
-  { id: 1, name: 'Alex', age: 29, email: 'demo@user.com', password: 'password' },
-  { id: 2, name: 'Chloe', age: 28, email: 'chloe@email.com', password: 'password123' }
-];
-let currentUserId = 3;
-
 // Routes
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  const user = users.find(u => u.email === email && u.password === password);
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid email or password' });
+  try {
+    const result = await pool.query('SELECT * FROM "Users" WHERE email = $1', [email]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    const user = result.rows[0];
+    const isValidPassword = user.password === password;
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
+    res.json({ user: { ...user, password: undefined }, token });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
   }
-  const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
-  res.json({ user: { ...user, password: undefined }, token });
 });
 
-app.post('/api/signup', (req, res) => {
+app.post('/api/signup', async (req, res) => {
   const { name, email, password } = req.body;
-  const existingUser = users.find(u => u.email === email);
-  if (existingUser) {
-    return res.status(400).json({ error: 'An account with this email already exists.' });
+  try {
+    const existingUser = await pool.query('SELECT * FROM "Users" WHERE email = $1', [email]);
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: 'An account with this email already exists.' });
+    }
+    const result = await pool.query(
+      'INSERT INTO "Users" (name, email, password, age, bio, images, interests) VALUES ($1, $2, $3, 18, \'\', ARRAY[]::TEXT[], ARRAY[]::TEXT[]) RETURNING *',
+      [name, email, password]
+    );
+    const user = result.rows[0];
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
+    res.json({ user: { ...user, password: undefined }, token });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
   }
-  const newUser = {
-    id: currentUserId++,
-    name,
-    email,
-    password,
-    age: 18,
-    bio: '',
-    images: '[]',
-    interests: '[]'
-  };
-  users.push(newUser);
-  const token = jwt.sign({ id: newUser.id, email: newUser.email }, JWT_SECRET);
-  res.json({ user: { ...newUser, password: undefined }, token });
 });
 
 app.get('/api/user/:id', authenticateToken, async (req, res) => {
@@ -113,34 +112,29 @@ app.post('/api/swipe', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/date-ideas', authenticateToken, (req, res) => {
-  res.json(dateIdeas);
+app.get('/api/date-ideas', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM "DateIdeas" ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-app.post('/api/date-ideas', authenticateToken, (req, res) => {
+app.post('/api/date-ideas', authenticateToken, async (req, res) => {
   const { title, description, category, location, date, budget, dressCode } = req.body;
-  const user = users.find(u => u.id === req.user.id);
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
+  try {
+    const userResult = await pool.query('SELECT name, images FROM "Users" WHERE id = $1', [req.user.id]);
+    const user = userResult.rows[0];
+    const result = await pool.query(`
+      INSERT INTO "DateIdeas" (title, description, category, authorId, authorName, authorImage, location, date, budget, dressCode) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+      RETURNING *
+    `, [title, description, category, req.user.id, user.name, user.images[0], location, date, budget, dressCode]);
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
   }
-
-  const newDateIdea = {
-    id: Date.now(),
-    title,
-    description,
-    category,
-    authorId: req.user.id,
-    authorName: user.name,
-    authorImage: user.images ? JSON.parse(user.images)[0] : null,
-    location,
-    date,
-    budget,
-    dressCode,
-    created_at: new Date().toISOString()
-  };
-
-  dateIdeas.push(newDateIdea);
-  res.json(newDateIdea);
 });
 
 app.get('/api/premium-status', authenticateToken, async (req, res) => {
