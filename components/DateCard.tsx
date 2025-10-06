@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { DateIdea } from '../types';
-import { useNotification } from '../contexts/NotificationContext';
 import { usePremium } from '../contexts/PremiumContext';
 import { MapPinIcon, getRandomGradient, PlaneIcon, CalendarIcon, CurrencyDollarIcon, TagIcon } from '../constants';
 import DirectionsModal from './DirectionsModal';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 interface DateCardProps {
   dateIdea: DateIdea;
@@ -12,13 +13,26 @@ interface DateCardProps {
 const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
   const [interestSent, setInterestSent] = useState(false);
   const [isDirectionsModalOpen, setIsDirectionsModalOpen] = useState(false);
-  const { addNotification } = useNotification();
   const { isPremium } = usePremium();
   const [buttonGradient] = useState(() => getRandomGradient());
 
-  const handleInterestClick = () => {
-    setInterestSent(true);
-    addNotification(`Interest sent for "${dateIdea.title}"!`, 'interest');
+  const handleInterestClick = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_BASE}/date-ideas/${dateIdea.id}/interest`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        setInterestSent(true);
+      } else {
+        console.error('Failed to express interest');
+      }
+    } catch (error) {
+      console.error('Error expressing interest:', error);
+    }
   };
 
   const formattedDate = dateIdea.date ? new Date(dateIdea.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : null;

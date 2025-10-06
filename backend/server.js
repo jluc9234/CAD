@@ -121,31 +121,25 @@ app.get('/api/date-ideas', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/date-ideas', authenticateToken, async (req, res) => {
-  const { title, description, category, location, date, budget, dressCode } = req.body;
+app.post('/api/date-ideas/:id/interest', authenticateToken, async (req, res) => {
+  const { id } = req.params;
   try {
-    const userResult = await pool.query('SELECT name, images FROM "Users" WHERE id = $1', [req.user.id]);
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+    // Check if date idea exists
+    const dateIdeaCheck = await pool.query('SELECT * FROM "DateIdeas" WHERE id = $1', [id]);
+    if (dateIdeaCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Date idea not found' });
     }
     
-    const user = userResult.rows[0];
+    // Insert interest, ignore if already exists
+    await pool.query(`
+      INSERT INTO "DateInterests" ("dateIdeaId", "userId") 
+      VALUES ($1, $2) 
+      ON CONFLICT ("dateIdeaId", "userId") DO NOTHING
+    `, [id, req.user.id]);
     
-    // Handle PostgreSQL array - get first image or use null
-    let authorImage = null;
-    if (user && user.images && Array.isArray(user.images) && user.images.length > 0) {
-      authorImage = user.images[0];
-    }
-    
-    const result = await pool.query(`
-      INSERT INTO "DateIdeas" (title, description, category, "authorId", "authorName", "authorImage", location, date, budget, "dressCode") 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
-      RETURNING *
-    `, [title, description, category, req.user.id, user.name, authorImage, location, date, budget, dressCode]);
-    
-    res.json(result.rows[0]);
+    res.json({ success: true });
   } catch (error) {
-    console.error('Error posting date:', error);
+    console.error('Error expressing interest:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

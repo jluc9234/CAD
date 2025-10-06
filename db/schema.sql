@@ -1,5 +1,7 @@
 -- Drop the table if it exists to start fresh (optional, good for testing)
 DROP TABLE IF EXISTS "Users";
+DROP TABLE IF EXISTS "DateIdeas";
+DROP TABLE IF EXISTS "DateInterests";
 
 -- Create the Users table
 CREATE TABLE "Users" (
@@ -13,6 +15,31 @@ CREATE TABLE "Users" (
     "images" TEXT[], -- Array of strings for image URLs
     "interests" TEXT[], -- Array of strings for interests
     "background" TEXT -- Can be a data URL or a regular URL for the background image
+);
+
+-- Create the DateIdeas table
+CREATE TABLE "DateIdeas" (
+    "id" SERIAL PRIMARY KEY,
+    "title" VARCHAR(255) NOT NULL,
+    "description" TEXT,
+    "category" VARCHAR(255),
+    "authorId" INTEGER REFERENCES "Users"("id"),
+    "authorName" VARCHAR(255),
+    "authorImage" TEXT,
+    "location" TEXT,
+    "date" TIMESTAMP,
+    "budget" VARCHAR(50),
+    "dressCode" VARCHAR(50),
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create the DateInterests table
+CREATE TABLE "DateInterests" (
+    "id" SERIAL PRIMARY KEY,
+    "dateIdeaId" INTEGER REFERENCES "DateIdeas"("id"),
+    "userId" INTEGER REFERENCES "Users"("id"),
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE("dateIdeaId", "userId")
 );
 
 -- Insert initial user data for the application
