@@ -17,6 +17,7 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
   const [buttonGradient] = useState(() => getRandomGradient());
 
   const handleInterestClick = async () => {
+    setInterestSent(true); // Optimistically disable
     const token = localStorage.getItem('token');
     try {
       const response = await fetch(`${API_BASE}/date-ideas/${dateIdea.id}/interest`, {
@@ -25,12 +26,12 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
           'Authorization': `Bearer ${token}`,
         },
       });
-      if (response.ok) {
-        setInterestSent(true);
-      } else {
+      if (!response.ok) {
+        setInterestSent(false); // Re-enable if failed
         console.error('Failed to express interest');
       }
     } catch (error) {
+      setInterestSent(false); // Re-enable if error
       console.error('Error expressing interest:', error);
     }
   };
