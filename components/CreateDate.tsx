@@ -175,7 +175,7 @@ const CreateDate: React.FC<CreateDateProps> = ({ onBack, onPostDate, onPremiumCl
                 budget: budget !== 'Not Set' ? budget : undefined,
                 dressCode: dressCode !== 'Not Set' ? dressCode : undefined,
             };
-            onPostDate(newDate);
+            await onPostDate(newDate);
         } catch (error) {
             console.error("Failed to post date", error);
         } finally {

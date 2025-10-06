@@ -31,6 +31,8 @@ const App: React.FC = () => {
 
     const handlePostDate = async (newDate: DateIdea) => {
         const token = localStorage.getItem('token');
+        console.log('Posting date idea:', newDate);
+        console.log('Token exists:', !!token);
         try {
             const response = await fetch(`${API_BASE}/date-ideas`, {
                 method: 'POST',
@@ -48,16 +50,21 @@ const App: React.FC = () => {
                     dressCode: newDate.dressCode
                 })
             });
+            console.log('Response status:', response.status);
             if (response.ok) {
                 const savedDate = await response.json();
+                console.log('Saved date:', savedDate);
                 setDateIdeas(prev => [savedDate, ...prev]);
                 setCreateDateVisible(false);
                 setActiveView('dates');
             } else {
-                console.error('Failed to save date idea');
+                const errorText = await response.text();
+                console.error('Failed to save date idea:', response.status, errorText);
+                alert('Failed to save date idea. Please try again.');
             }
         } catch (error) {
             console.error('Error posting date:', error);
+            alert('Error posting date. Please check your connection and try again.');
         }
     };
 
