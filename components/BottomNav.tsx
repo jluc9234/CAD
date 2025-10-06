@@ -1,5 +1,5 @@
 import React from 'react';
-import { HeartIcon, CalendarIcon, ChatIcon, UserIcon } from '../constants';
+import { HeartIcon, CalendarIcon, ChatIcon } from '../constants';
 import { ActiveView } from '../types';
 
 interface BottomNavProps {
@@ -41,7 +41,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setActiveView }) => {
             onClick={() => setActiveView('matches')}
         />
         <NavItem 
-            icon={<UserIcon className="w-7 h-7" />} 
+            icon={<div className="w-7 h-7 rounded-full bg-slate-400 flex items-center justify-center text-xs font-bold">👤</div>} 
             label="Profile"
             isActive={activeView === 'profile'}
             onClick={() => setActiveView('profile')}
