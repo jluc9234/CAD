@@ -23,49 +23,44 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// PostgreSQL connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+// In-memory storage for testing
+let dateIdeas = [];
+let users = [
+  { id: 1, name: 'Alex', age: 29, email: 'demo@user.com', password: 'password' },
+  { id: 2, name: 'Chloe', age: 28, email: 'chloe@email.com', password: 'password123' }
+];
+let currentUserId = 3;
 
 // Routes
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', (req, res) => {
   const { email, password } = req.body;
-  try {
-    const result = await pool.query('SELECT * FROM "Users" WHERE email = $1', [email]);
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-    const user = result.rows[0];
-    const isValidPassword = user.password === password;
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
-    res.json({ user: { ...user, password: undefined }, token });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+  const user = users.find(u => u.email === email && u.password === password);
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid email or password' });
   }
+  const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
+  res.json({ user: { ...user, password: undefined }, token });
 });
 
-app.post('/api/signup', async (req, res) => {
+app.post('/api/signup', (req, res) => {
   const { name, email, password } = req.body;
-  try {
-    const existingUser = await pool.query('SELECT * FROM "Users" WHERE email = $1', [email]);
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({ error: 'An account with this email already exists.' });
-    }
-    const result = await pool.query(
-      'INSERT INTO "Users" (name, email, password, age, bio, images, interests) VALUES ($1, $2, $3, 18, \'\', ARRAY[]::TEXT[], ARRAY[]::TEXT[]) RETURNING *',
-      [name, email, password]
-    );
-    const user = result.rows[0];
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
-    res.json({ user: { ...user, password: undefined }, token });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+  const existingUser = users.find(u => u.email === email);
+  if (existingUser) {
+    return res.status(400).json({ error: 'An account with this email already exists.' });
   }
+  const newUser = {
+    id: currentUserId++,
+    name,
+    email,
+    password,
+    age: 18,
+    bio: '',
+    images: '[]',
+    interests: '[]'
+  };
+  users.push(newUser);
+  const token = jwt.sign({ id: newUser.id, email: newUser.email }, JWT_SECRET);
+  res.json({ user: { ...newUser, password: undefined }, token });
 });
 
 app.get('/api/user/:id', authenticateToken, async (req, res) => {
