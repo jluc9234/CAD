@@ -44,7 +44,7 @@ const SwipeDeck: React.FC = () => {
     // Send swipe to backend
     const token = localStorage.getItem('token');
     try {
-      await fetch(`${API_BASE}/swipe`, {
+      const response = await fetch(`${API_BASE}/swipe`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -52,6 +52,21 @@ const SwipeDeck: React.FC = () => {
         },
         body: JSON.stringify({ swipedUserId: swipedUser.id, action })
       });
+      if (response.ok) {
+        // Check for match
+        const matchResponse = await fetch(`${API_BASE}/check-match`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ swipedUserId: swipedUser.id })
+        });
+        const matchData = await matchResponse.json();
+        if (matchData.isMatch) {
+          addNotification(`You matched with ${swipedUser.name}!`, 'match');
+        }
+      }
     } catch (error) {
       console.error('Failed to record swipe:', error);
     }

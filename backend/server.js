@@ -160,6 +160,89 @@ app.post('/api/upgrade-premium', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/check-match', authenticateToken, async (req, res) => {
+  const { swipedUserId } = req.body;
+  try {
+    // Check if the other user liked back
+    const result = await pool.query(`
+      SELECT 1 FROM "Swipes" 
+      WHERE user_id = $1 AND swiped_user_id = $2 AND action = 'like'
+    `, [swipedUserId, req.user.id]);
+    const isLikedBack = result.rows.length > 0;
+    if (isLikedBack) {
+      // Create match
+      await pool.query(`
+        INSERT INTO "Matches" (user1_id, user2_id) 
+        VALUES (LEAST($1, $2), GREATEST($1, $2)) 
+        ON CONFLICT DO NOTHING
+      `, [req.user.id, swipedUserId]);
+    }
+    res.json({ isMatch: isLikedBack });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/matches', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT m.id, u.id as userId, u.name, u.age, u.bio, u.images, u.interests
+      FROM "Matches" m
+      JOIN "Users" u ON (u.id = m.user1_id OR u.id = m.user2_id) AND u.id != $1
+      WHERE m.user1_id = $1 OR m.user2_id = $1
+      ORDER BY m.created_at DESC
+    `, [req.user.id]);
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/messages/:matchId', authenticateToken, async (req, res) => {
+  const { matchId } = req.params;
+  try {
+    // Verify user is in the match
+    const matchCheck = await pool.query(`
+      SELECT 1 FROM "Matches" 
+      WHERE id = $1 AND (user1_id = $2 OR user2_id = $2)
+    `, [matchId, req.user.id]);
+    if (matchCheck.rows.length === 0) return res.status(403).json({ error: 'Unauthorized' });
+
+    const result = await pool.query(`
+      SELECT m.id, m.sender_id, m.text, m.timestamp, u.name as senderName
+      FROM "Messages" m
+      JOIN "Users" u ON u.id = m.sender_id
+      WHERE m.match_id = $1
+      ORDER BY m.timestamp ASC
+    `, [matchId]);
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/messages/:matchId', authenticateToken, async (req, res) => {
+  const { matchId } = req.params;
+  const { text } = req.body;
+  try {
+    // Verify user is in the match
+    const matchCheck = await pool.query(`
+      SELECT 1 FROM "Matches" 
+      WHERE id = $1 AND (user1_id = $2 OR user2_id = $2)
+    `, [matchId, req.user.id]);
+    if (matchCheck.rows.length === 0) return res.status(403).json({ error: 'Unauthorized' });
+
+    const result = await pool.query(`
+      INSERT INTO "Messages" (match_id, sender_id, text) 
+      VALUES ($1, $2, $3) 
+      RETURNING id, sender_id, text, timestamp
+    `, [matchId, req.user.id, text]);
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

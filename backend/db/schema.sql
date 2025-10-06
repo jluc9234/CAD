@@ -49,6 +49,24 @@ CREATE TABLE "UserPremium" (
     "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create the Matches table for mutual likes
+CREATE TABLE "Matches" (
+    "id" SERIAL PRIMARY KEY,
+    "user1_id" INTEGER REFERENCES "Users"("id") ON DELETE CASCADE,
+    "user2_id" INTEGER REFERENCES "Users"("id") ON DELETE CASCADE,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user1_id, user2_id)
+);
+
+-- Create the Messages table for chat
+CREATE TABLE "Messages" (
+    "id" SERIAL PRIMARY KEY,
+    "match_id" INTEGER REFERENCES "Matches"("id") ON DELETE CASCADE,
+    "sender_id" INTEGER REFERENCES "Users"("id") ON DELETE CASCADE,
+    "text" TEXT NOT NULL,
+    "timestamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Insert initial user data for the application
 INSERT INTO "Users" ("name", "age", "email", "phone", "password", "bio", "images", "interests") VALUES
 ('Alex', 29, 'demo@user.com', '555-123-4567', 'password', 'Software engineer by day, aspiring musician by night. I love exploring the city''s music scene and finding hidden coffee shops. Let''s create our own soundtrack.', '{"https://picsum.photos/seed/user0a/800/1200", "https://picsum.photos/seed/user0b/800/1200", "https://picsum.photos/seed/user0c/800/1200"}', '{"Live Music", "Espresso", "Coding", "Jazz"}'),
