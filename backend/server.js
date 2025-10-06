@@ -1,5 +1,4 @@
 const express = require('express');
-const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 require('dotenv').config();
@@ -107,29 +106,34 @@ app.post('/api/swipe', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/date-ideas', authenticateToken, async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM "DateIdeas" ORDER BY created_at DESC');
-    res.json(result.rows);
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+app.get('/api/date-ideas', authenticateToken, (req, res) => {
+  res.json(dateIdeas);
 });
 
-app.post('/api/date-ideas', authenticateToken, async (req, res) => {
+app.post('/api/date-ideas', authenticateToken, (req, res) => {
   const { title, description, category, location, date, budget, dressCode } = req.body;
-  try {
-    const userResult = await pool.query('SELECT name, images FROM "Users" WHERE id = $1', [req.user.id]);
-    const user = userResult.rows[0];
-    const result = await pool.query(`
-      INSERT INTO "DateIdeas" (title, description, category, authorId, authorName, authorImage, location, date, budget, dressCode) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
-      RETURNING *
-    `, [title, description, category, req.user.id, user.name, user.images[0], location, date, budget, dressCode]);
-    res.json(result.rows[0]);
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+  const user = users.find(u => u.id === req.user.id);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
   }
+
+  const newDateIdea = {
+    id: Date.now(),
+    title,
+    description,
+    category,
+    authorId: req.user.id,
+    authorName: user.name,
+    authorImage: user.images ? JSON.parse(user.images)[0] : null,
+    location,
+    date,
+    budget,
+    dressCode,
+    created_at: new Date().toISOString()
+  };
+
+  dateIdeas.push(newDateIdea);
+  res.json(newDateIdea);
 });
 
 app.get('/api/premium-status', authenticateToken, async (req, res) => {
