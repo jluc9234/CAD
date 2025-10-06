@@ -9,27 +9,81 @@ interface ChatWindowProps {
   onBack: () => void;
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
 const ChatWindow: React.FC<ChatWindowProps> = ({ match, onBack }) => {
-    const [messages, setMessages] = useState<Message[]>(match.messages);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
     const [isLoadingAI, setIsLoadingAI] = useState(false);
+    const [sending, setSending] = useState(false);
     const { isPremium } = usePremium();
     const endOfMessagesRef = useRef<null | HTMLDivElement>(null);
+
+    useEffect(() => {
+        fetchMessages();
+    }, [match.id]);
 
     useEffect(() => {
         endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    const handleSend = () => {
-        if (inputText.trim() === '') return;
-        const newMessage: Message = {
-            id: Date.now(),
-            senderId: 0, // Current user
-            text: inputText,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setMessages([...messages, newMessage]);
-        setInputText('');
+    const fetchMessages = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`${API_BASE}/messages/${match.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (response.ok) {
+                const messagesData = await response.json();
+                const transformedMessages = messagesData.map((msg: any) => ({
+                    id: msg.id,
+                    senderId: msg.sender_id,
+                    text: msg.text,
+                    timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                }));
+                setMessages(transformedMessages);
+            }
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+        }
+    };
+
+    const handleSend = async () => {
+        if (inputText.trim() === '' || sending) return;
+        
+        setSending(true);
+        const token = localStorage.getItem('token');
+        
+        try {
+            const response = await fetch(`${API_BASE}/messages/${match.id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ text: inputText.trim() })
+            });
+
+            if (response.ok) {
+                const newMessage = await response.json();
+                const transformedMessage: Message = {
+                    id: newMessage.id,
+                    senderId: newMessage.sender_id,
+                    text: newMessage.text,
+                    timestamp: new Date(newMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                
+                setMessages(prev => [...prev, transformedMessage]);
+                setInputText('');
+            } else {
+                console.error('Failed to send message');
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+        } finally {
+            setSending(false);
+        }
     };
     
     const handleIcebreaker = async () => {
@@ -87,8 +141,20 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ match, onBack }) => {
                         placeholder="Type a message..."
                         className="flex-grow bg-slate-800 border border-slate-700 rounded-full px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
                     />
-                    <button onClick={handleSend} className="bg-pink-600 text-white rounded-full p-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                    <button 
+                        onClick={handleSend} 
+                        disabled={sending}
+                        className="bg-pink-600 text-white rounded-full p-3 disabled:opacity-50 transition-opacity"
+                    >
+                        {sending ? (
+                            <div className="w-6 h-6 flex items-center justify-center">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            </div>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                        )}
                     </button>
                 </div>
             </div>

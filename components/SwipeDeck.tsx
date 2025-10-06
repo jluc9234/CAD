@@ -38,13 +38,13 @@ const SwipeDeck: React.FC = () => {
   const handleSwipe = async (direction: 'left' | 'right') => {
     const swipedUser = swipeableUsers[currentIndex];
     console.log(`Swiped ${direction} on ${swipedUser.name}`);
-    
     const action = direction === 'right' ? 'like' : 'pass';
     
     // Send swipe to backend
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${API_BASE}/swipe`, {
+      // First, record the swipe
+      const swipeResponse = await fetch(`${API_BASE}/swipe`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -52,8 +52,9 @@ const SwipeDeck: React.FC = () => {
         },
         body: JSON.stringify({ swipedUserId: swipedUser.id, action })
       });
-      if (response.ok) {
-        // Check for match
+
+      if (swipeResponse.ok && action === 'like') {
+        // Check if this created a match
         const matchResponse = await fetch(`${API_BASE}/check-match`, {
           method: 'POST',
           headers: { 
@@ -62,22 +63,17 @@ const SwipeDeck: React.FC = () => {
           },
           body: JSON.stringify({ swipedUserId: swipedUser.id })
         });
-        const matchData = await matchResponse.json();
-        if (matchData.isMatch) {
-          addNotification(`You matched with ${swipedUser.name}!`, 'match');
+
+        if (matchResponse.ok) {
+          const matchResult = await matchResponse.json();
+          if (matchResult.isMatch) {
+            // It's a match! Show notification
+            addNotification(`You matched with ${swipedUser.name}! 💕`, 'match');
+          }
         }
       }
     } catch (error) {
-      console.error('Failed to record swipe:', error);
-    }
-    
-    if (direction === 'right') {
-        // Simulate a random match
-        if (Math.random() < 0.3) { // 30% chance to match
-            setTimeout(() => {
-                addNotification(`You matched with ${swipedUser.name}!`, 'match');
-            }, 500); // Delay notification slightly for effect
-        }
+      console.error('Error processing swipe:', error);
     }
 
     // Animate out
