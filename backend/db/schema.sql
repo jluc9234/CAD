@@ -24,6 +24,22 @@ CREATE TABLE "Swipes" (
     "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create the DateIdeas table for user-created date ideas
+CREATE TABLE "DateIdeas" (
+    "id" SERIAL PRIMARY KEY,
+    "title" VARCHAR(255) NOT NULL,
+    "description" TEXT,
+    "category" VARCHAR(50),
+    "authorId" INTEGER REFERENCES "Users"("id") ON DELETE CASCADE,
+    "authorName" VARCHAR(255),
+    "authorImage" VARCHAR(500),
+    "location" VARCHAR(255),
+    "date" TIMESTAMP,
+    "budget" VARCHAR(10),
+    "dressCode" VARCHAR(50),
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Insert initial user data for the application
 INSERT INTO "Users" ("name", "age", "email", "phone", "password", "bio", "images", "interests") VALUES
 ('Alex', 29, 'demo@user.com', '555-123-4567', 'password', 'Software engineer by day, aspiring musician by night. I love exploring the city''s music scene and finding hidden coffee shops. Let''s create our own soundtrack.', '{"https://picsum.photos/seed/user0a/800/1200", "https://picsum.photos/seed/user0b/800/1200", "https://picsum.photos/seed/user0c/800/1200"}', '{"Live Music", "Espresso", "Coding", "Jazz"}'),
