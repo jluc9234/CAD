@@ -84,8 +84,28 @@ app.get('/api/user/:id', authenticateToken, async (req, res) => {
 
 app.get('/api/users', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, age, bio, images, interests FROM "Users" WHERE id != $1', [req.user.id]);
+    const result = await pool.query(`
+      SELECT id, name, age, bio, images, interests 
+      FROM "Users" 
+      WHERE id != $1 
+      AND id NOT IN (
+        SELECT swiped_user_id FROM "Swipes" WHERE user_id = $1
+      )
+    `, [req.user.id]);
     res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/swipe', authenticateToken, async (req, res) => {
+  const { swipedUserId, action } = req.body;
+  try {
+    await pool.query(`
+      INSERT INTO "Swipes" (user_id, swiped_user_id, action) 
+      VALUES ($1, $2, $3)
+    `, [req.user.id, swipedUserId, action]);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }

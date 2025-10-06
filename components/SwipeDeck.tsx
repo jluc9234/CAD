@@ -35,9 +35,26 @@ const SwipeDeck: React.FC = () => {
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const handleSwipe = (direction: 'left' | 'right') => {
+  const handleSwipe = async (direction: 'left' | 'right') => {
     const swipedUser = swipeableUsers[currentIndex];
     console.log(`Swiped ${direction} on ${swipedUser.name}`);
+    
+    const action = direction === 'right' ? 'like' : 'pass';
+    
+    // Send swipe to backend
+    const token = localStorage.getItem('token');
+    try {
+      await fetch(`${API_BASE}/swipe`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ swipedUserId: swipedUser.id, action })
+      });
+    } catch (error) {
+      console.error('Failed to record swipe:', error);
+    }
     
     if (direction === 'right') {
         // Simulate a random match
@@ -53,9 +70,10 @@ const SwipeDeck: React.FC = () => {
         if (currentIndex < swipeableUsers.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
-            // End of stack, maybe show a message or reshuffle
+            // End of stack, fetch more or show message
             console.log("End of profiles");
-            setCurrentIndex(0); // Loop for demo
+            setCurrentIndex(0); // Reset for demo
+            // Optionally refetch users
         }
     }, 300); // Wait for animation
   };
