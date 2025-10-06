@@ -11,10 +11,13 @@ export const createApiHandler = (handler: Handler): Handler => {
   return async (event, context) => {
     try {
       const response = await handler(event, context);
+      if (!response) {
+        throw new Error('Handler did not return a response');
+      }
       return {
         ...response,
         headers: {
-          ...response?.headers,
+          ...response.headers,
           'Content-Type': 'application/json',
         },
       } as HandlerResponse;

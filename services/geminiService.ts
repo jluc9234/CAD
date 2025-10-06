@@ -1,5 +1,7 @@
 // src/services/geminiService.ts
 
+import type { LocalIdea, LocalEvent, DateSuggestion, DateCategory, BudgetOption, DressCodeOption } from "../types";
+
 export type GeminiAction =
   | "enhanceDescription"
   | "generateDateIdea"

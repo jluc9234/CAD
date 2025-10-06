@@ -2,14 +2,8 @@
 import { Handler } from "@netlify/functions";
 import { GoogleGenAI, Type } from "@google/genai";
 import { DATE_CATEGORIES } from "../../constants";
-import type {
-  DateCategory,
-  LocalIdea,
-  LocalEvent,
-  DateSuggestion,
-  BudgetOption,
-  DressCodeOption
-} from "../../types";
+import type { LocalIdea, LocalEvent, DateSuggestion, BudgetOption, DressCodeOption } from "../../types";
+import { DateCategory } from "../../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.SECRET_GOOGLE_AI_KEY! });
 
