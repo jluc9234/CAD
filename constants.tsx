@@ -57,9 +57,9 @@ export const ChatIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-export const UserIcon = ({ className }: { className?: string }) => (
+export const BellIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM15 17H9a6 6 0 01-6-6V9a2 2 0 012-2h10a2 2 0 012 2v2a6 6 0 01-6 6zM9 9V3a1 1 0 011-1h4a1 1 0 011 1v6" />
     </svg>
 );
 
