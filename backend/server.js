@@ -136,6 +136,16 @@ app.post('/api/date-ideas', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/premium-status', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT is_premium, expires_at FROM "UserPremium" WHERE user_id = $1', [req.user.id]);
+    const premium = result.rows[0] || { is_premium: false, expires_at: null };
+    res.json(premium);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
