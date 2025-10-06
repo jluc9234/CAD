@@ -25,6 +25,7 @@ const authenticateToken = (req, res, next) => {
 // PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 });
 
 // Routes

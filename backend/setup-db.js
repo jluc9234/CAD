@@ -4,6 +4,7 @@ const path = require('path');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 });
 
 const schemaPath = path.join(__dirname, 'db', 'schema.sql');
