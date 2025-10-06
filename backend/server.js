@@ -176,26 +176,18 @@ app.post('/api/upgrade-premium', authenticateToken, async (req, res) => {
 
 app.post('/api/check-match', authenticateToken, async (req, res) => {
   const { swipedUserId } = req.body;
-  console.log('Check match request:', { userId: req.user.id, swipedUserId });
-  
   try {
     // Check if the other user liked back
     const result = await pool.query(`
-      SELECT 1 FROM "Swipes" 
+      SELECT 1 FROM "Swipes"
       WHERE user_id = $1 AND swiped_user_id = $2 AND action = 'like'
     `, [swipedUserId, req.user.id]);
-    
-    console.log('Check match query result:', result.rows.length, 'rows');
     const isLikedBack = result.rows.length > 0;
-    
-    console.log('Is liked back:', isLikedBack);
-    
     if (isLikedBack) {
       // Create match
-      console.log('Creating match between', req.user.id, 'and', swipedUserId);
       await pool.query(`
-        INSERT INTO "Matches" (user1_id, user2_id) 
-        VALUES (LEAST($1, $2), GREATEST($1, $2)) 
+        INSERT INTO "Matches" (user1_id, user2_id)
+        VALUES (LEAST($1, $2), GREATEST($1, $2))
         ON CONFLICT DO NOTHING
       `, [req.user.id, swipedUserId]);
     }
