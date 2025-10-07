@@ -183,12 +183,6 @@ const App: React.FC = () => {
             <div aria-live="polite" aria-atomic="true" className="absolute top-20 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 space-y-2 z-50 pointer-events-none">
                 {notifications.map(notification => (
                     <NotificationToast key={notification.id} notification={notification} />
-                ))}
             </div>
         </div>
     );
-};
-
-}
-
-export default App;
