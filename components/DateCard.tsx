@@ -27,28 +27,36 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea, onInterestUpdate }) => {
   }, [dateIdea.hasInterested, dateIdea.interestCount]);
 
   const handleInterestClick = async () => {
+    console.log('Interest button clicked for date:', dateIdea.id);
     setIsSubmitting(true);
     const token = localStorage.getItem('token');
+    console.log('Token exists:', !!token);
     try {
+      console.log('Calling API:', `${API_BASE}/date-ideas/${dateIdea.id}/interest`);
       const response = await fetch(`${API_BASE}/date-ideas/${dateIdea.id}/interest`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
+      console.log('API response status:', response.status);
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API error:', errorText);
         setIsSubmitting(false);
         console.error('Failed to express interest');
         return;
       }
       const data: DateInterestUpdate = await response.json();
+      console.log('API response data:', data);
       setHasInterested(data.hasInterested);
       setInterestCount(data.interestCount);
       onInterestUpdate(dateIdea.id, data.hasInterested, data.interestCount);
+      console.log('Interest updated successfully');
       setIsSubmitting(false);
     } catch (error) {
-      setIsSubmitting(false);
       console.error('Error expressing interest:', error);
+      setIsSubmitting(false);
     }
   };
 
