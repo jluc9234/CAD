@@ -101,7 +101,6 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
                     Directions
                 </button>
             )}
-            {currentUser && currentUser.id !== dateIdea.authorId && (
             <button 
               onClick={handleInterestClick}
               disabled={interestSent}
@@ -109,7 +108,6 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
             >
               {interestSent ? "Interest Sent ✓" : "I'm Interested"}
             </button>
-            )}
           </div>
         </div>
       </div>
