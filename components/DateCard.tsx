@@ -18,24 +18,8 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
   const { isPremium } = usePremium();
   const [buttonGradient] = useState(() => getRandomGradient());
 
-  const handleInterestClick = async () => {
-    setInterestSent(true); // Optimistically disable
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_BASE}/date-ideas/${dateIdea.id}/interest`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        setInterestSent(false); // Re-enable if failed
-        console.error('Failed to express interest');
-      }
-    } catch (error) {
-      setInterestSent(false); // Re-enable if error
-      console.error('Error expressing interest:', error);
-    }
+  const handleInterestClick = () => {
+    setInterestSent(true);
   };
 
   const formattedDate = dateIdea.date ? new Date(dateIdea.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : null;
