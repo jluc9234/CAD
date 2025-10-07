@@ -124,6 +124,17 @@ app.get('/api/date-ideas', authenticateToken, async (req, res) => {
 app.post('/api/date-ideas/:id/interest', authenticateToken, async (req, res) => {
   const { id } = req.params;
   try {
+    // Ensure the DateInterests table exists
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "DateInterests" (
+        "id" SERIAL PRIMARY KEY,
+        "dateIdeaId" INTEGER REFERENCES "DateIdeas"("id"),
+        "userId" INTEGER REFERENCES "Users"("id"),
+        "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE("dateIdeaId", "userId")
+      );
+    `);
+    
     // Check if date idea exists
     const dateIdeaCheck = await pool.query('SELECT * FROM "DateIdeas" WHERE id = $1', [id]);
     if (dateIdeaCheck.rows.length === 0) {

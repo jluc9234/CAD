@@ -1,7 +1,11 @@
 -- Drop the table if it exists to start fresh (optional, good for testing)
-DROP TABLE IF EXISTS "Users";
-DROP TABLE IF EXISTS "DateIdeas";
-DROP TABLE IF EXISTS "DateInterests";
+DROP TABLE IF EXISTS "Messages" CASCADE;
+DROP TABLE IF EXISTS "Matches" CASCADE;
+DROP TABLE IF EXISTS "Swipes" CASCADE;
+DROP TABLE IF EXISTS "UserPremium" CASCADE;
+DROP TABLE IF EXISTS "DateInterests" CASCADE;
+DROP TABLE IF EXISTS "DateIdeas" CASCADE;
+DROP TABLE IF EXISTS "Users" CASCADE;
 
 -- Create the Users table
 CREATE TABLE "Users" (
