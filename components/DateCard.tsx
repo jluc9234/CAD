@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { DateIdea } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { usePremium } from '../contexts/PremiumContext';
 import { MapPinIcon, getRandomGradient, PlaneIcon, CalendarIcon, CurrencyDollarIcon, TagIcon } from '../constants';
 import DirectionsModal from './DirectionsModal';
@@ -13,6 +14,7 @@ interface DateCardProps {
 const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
   const [interestSent, setInterestSent] = useState(false);
   const [isDirectionsModalOpen, setIsDirectionsModalOpen] = useState(false);
+  const { currentUser } = useAuth();
   const { isPremium } = usePremium();
   const [buttonGradient] = useState(() => getRandomGradient());
 
@@ -99,6 +101,7 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
                     Directions
                 </button>
             )}
+            {currentUser && currentUser.id !== dateIdea.authorId && (
             <button 
               onClick={handleInterestClick}
               disabled={interestSent}
@@ -106,6 +109,7 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
             >
               {interestSent ? "Interest Sent ✓" : "I'm Interested"}
             </button>
+            )}
           </div>
         </div>
       </div>
