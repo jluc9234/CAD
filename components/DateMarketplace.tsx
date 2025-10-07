@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { DateIdea, DateCategory } from '../types';
 import DateCard from './DateCard';
-import { MOCK_DATE_IDEAS } from '../data/mockData';
 import { DATE_CATEGORIES, getRandomGradient } from '../constants';
 
 interface DateMarketplaceProps {
