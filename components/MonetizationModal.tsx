@@ -25,15 +25,21 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
   const handleApprove = async (orderID: string) => {
     setLoading(true);
     try {
-      const res = await fetch('/.netlify/functions/verify-payment', { 
+      const token = localStorage.getItem('token');
+      const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(); // 1 year from now
+
+      const res = await fetch('/api/upgrade-premium', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderID }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ paymentId: orderID, expiresAt }),
       });
+
       const data = await res.json();
-      
-      // Check for the { success: true } response from your new function
-      if (data.success) { 
+
+      if (data.success) {
         setPremium(true);
         onClose();
         alert('Payment successful! Premium features unlocked.');

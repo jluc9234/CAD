@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ActiveView, DateIdea, Match, PersistentNotification } from './types';
 import { useAuth } from './contexts/AuthContext';
+import { useNotification } from './contexts/NotificationContext';
 
 import SwipeDeck from './components/SwipeDeck';
 import DateMarketplace from './components/DateMarketplace';
@@ -10,15 +11,12 @@ import LoginScreen from './components/LoginScreen';
 import Matches from './components/Matches';
 import MonetizationModal from './components/MonetizationModal';
 import NotificationToast from './components/NotificationToast';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
 import BottomNav from './components/BottomNav';
 import CreateDate from './components/CreateDate';
 import ProfileScreen from './components/ProfileScreen';
 import Notifications from './components/Notifications';
 
-import { useNotification } from './contexts/NotificationContext';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const App: React.FC = () => {
     const { currentUser } = useAuth();
@@ -190,5 +188,7 @@ const App: React.FC = () => {
         </div>
     );
 };
+
+}
 
 export default App;
