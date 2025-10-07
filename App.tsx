@@ -1,9 +1,3 @@
-    const handleInterestUpdate = (dateIdeaId: number, hasInterested: boolean, interestCount: number) => {
-        setDateIdeas(prev => prev.map(idea =>
-            idea.id === dateIdeaId ? { ...idea, hasInterested, interestCount } : idea
-        ));
-    };
-
 import React, { useState, useEffect } from 'react';
 import { ActiveView, DateIdea, Match } from './types';
 import { useAuth } from './contexts/AuthContext';
@@ -65,7 +59,12 @@ const App: React.FC = () => {
             if (response.ok) {
                 const savedDate = await response.json();
                 console.log('Saved date:', savedDate);
-                setDateIdeas(prev => [savedDate, ...prev]);
+                const normalizedDate: DateIdea = {
+                    ...savedDate,
+                    interestCount: savedDate.interestCount ?? 0,
+                    hasInterested: Boolean(savedDate.hasInterested),
+                };
+                setDateIdeas(prev => [normalizedDate, ...prev]);
                 setCreateDateVisible(false);
                 setActiveView('dates');
             } else {

@@ -9,9 +9,10 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 interface DateCardProps {
   dateIdea: DateIdea;
+  onInterestUpdate: (dateIdeaId: number, hasInterested: boolean, interestCount: number) => void;
 }
 
-const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
+const DateCard: React.FC<DateCardProps> = ({ dateIdea, onInterestUpdate }) => {
   const [hasInterested, setHasInterested] = useState(Boolean(dateIdea.hasInterested));
   const [interestCount, setInterestCount] = useState<number>(dateIdea.interestCount ?? 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,6 +44,7 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
       const data: DateInterestUpdate = await response.json();
       setHasInterested(data.hasInterested);
       setInterestCount(data.interestCount);
+      onInterestUpdate(dateIdea.id, data.hasInterested, data.interestCount);
       setIsSubmitting(false);
     } catch (error) {
       setIsSubmitting(false);

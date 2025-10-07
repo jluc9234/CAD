@@ -7,9 +7,10 @@ import { DATE_CATEGORIES, getRandomGradient } from '../constants';
 interface DateMarketplaceProps {
   onCreateDate: () => void;
   dateIdeas: DateIdea[];
+  onInterestUpdate: (dateIdeaId: number, hasInterested: boolean, interestCount: number) => void;
 }
 
-const DateMarketplace: React.FC<DateMarketplaceProps> = ({ onCreateDate, dateIdeas }) => {
+const DateMarketplace: React.FC<DateMarketplaceProps> = ({ onCreateDate, dateIdeas, onInterestUpdate }) => {
   const [selectedCategory, setSelectedCategory] = useState<DateCategory | 'All'>('All');
   const [buttonGradient, setButtonGradient] = useState(() => getRandomGradient());
 
@@ -56,7 +57,7 @@ const DateMarketplace: React.FC<DateMarketplaceProps> = ({ onCreateDate, dateIde
 
       <div className="space-y-4">
         {filteredIdeas.map(idea => (
-          <DateCard key={idea.id} dateIdea={idea} />
+          <DateCard key={idea.id} dateIdea={idea} onInterestUpdate={onInterestUpdate} />
         ))}
       </div>
     </div>
