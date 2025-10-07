@@ -99,13 +99,78 @@ app.get('/api/users', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/swipe', authenticateToken, async (req, res) => {
-  const { swipedUserId, action } = req.body;
+app.get('/api/date-ideas', authenticateToken, async (req, res) => {
   try {
     await pool.query(`
-      INSERT INTO "Swipes" (user_id, swiped_user_id, action) 
-      VALUES ($1, $2, $3)
-    `, [req.user.id, swipedUserId, action]);
+      CREATE TABLE IF NOT EXISTS "DateInterests" (
+        "id" SERIAL PRIMARY KEY,
+        "dateIdeaId" INTEGER REFERENCES "DateIdeas"("id") ON DELETE CASCADE,
+        "userId" INTEGER REFERENCES "Users"("id") ON DELETE CASCADE,
+        "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE("dateIdeaId", "userId")
+      );
+    `);
+
+    const result = await pool.query(`
+      SELECT di.*, 
+        COALESCE(interests.count, 0) AS "interestCount",
+        CASE WHEN ui."dateIdeaId" IS NOT NULL THEN true ELSE false END AS "hasInterested"
+      FROM "DateIdeas" di
+      LEFT JOIN (
+        SELECT "dateIdeaId", COUNT(*) AS count
+        FROM "DateInterests"
+        GROUP BY "dateIdeaId"
+      ) interests ON interests."dateIdeaId" = di.id
+      LEFT JOIN (
+        SELECT "dateIdeaId"
+        FROM "DateInterests"
+        WHERE "userId" = $1
+      ) ui ON ui."dateIdeaId" = di.id
+      ORDER BY di.created_at DESC
+    `, [req.user.id]);
+
+    res.json(result.rows.map(row => ({
+      ...row,
+      interestCount: Number(row.interestCount || 0),
+      hasInterested: Boolean(row.hasInterested),
+    })));
+  } catch (error) {
+    console.error('Error fetching date ideas:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/date-ideas', authenticateToken, async (req, res) => {
+  const { title, description, category, location, date, budget, dressCode } = req.body;
+  try {
+    const userResult = await pool.query('SELECT name, images FROM "Users" WHERE id = $1', [req.user.id]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = userResult.rows[0];
+    
+    // Handle PostgreSQL array - get first image or use null
+    let authorImage = null;
+    if (user && user.images && Array.isArray(user.images) && user.images.length > 0) {
+      authorImage = user.images[0];
+    }
+    
+    const result = await pool.query(`
+      INSERT INTO "DateIdeas" (title, description, category, "authorId", "authorName", "authorImage", location, date, budget, "dressCode") 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+      RETURNING *
+    `, [title, description, category, req.user.id, user.name, authorImage, location, date, budget, dressCode]);
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error posting date:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/date-ideas/:id/interest', authenticateToken, async (req, res) => {
+  const { id } = req.params;
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS "DateInterests" (
@@ -124,8 +189,59 @@ app.post('/api/swipe', authenticateToken, async (req, res) => {
     }
 
     // Insert interest, ignore if already exists
-    const premium = result.rows[0] || { is_premium: false, expires_at: null };
-    res.json(premium);
+    await pool.query(`
+      INSERT INTO "DateInterests" ("dateIdeaId", "userId") 
+      VALUES ($1, $2) 
+      ON CONFLICT ("dateIdeaId", "userId") DO NOTHING
+    `, [id, req.user.id]);
+
+    // Get interest count
+    const interestCountResult = await pool.query(`
+      SELECT COUNT(*) AS count
+      FROM "DateInterests"
+      WHERE "dateIdeaId" = $1
+    `, [id]);
+
+    const interestCount = Number(interestCountResult.rows[0]?.count || 0);
+
+    // Create notification for the author
+    const authorId = dateIdeaCheck.rows[0].authorId;
+    if (authorId && authorId !== req.user.id) {
+      await pool.query(`
+        INSERT INTO "Notifications" ("userId", "type", "message", "relatedId")
+        VALUES ($1, 'interest', $2, $3)
+      `, [authorId, `Someone expressed interest in your date idea!`, id]);
+    }
+
+    res.json({ success: true, hasInterested: true, interestCount });
+  } catch (error) {
+    console.error('Error expressing interest:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM "Notifications"
+      WHERE "userId" = $1
+      ORDER BY "created_at" DESC
+    `, [req.user.id]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/swipe', authenticateToken, async (req, res) => {
+  const { swipedUserId, action } = req.body;
+  try {
+    await pool.query(`
+      INSERT INTO "Swipes" (user_id, swiped_user_id, action) 
+      VALUES ($1, $2, $3)
+    `, [req.user.id, swipedUserId, action]);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
