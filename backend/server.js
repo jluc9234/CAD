@@ -114,47 +114,44 @@ app.post('/api/swipe', authenticateToken, async (req, res) => {
 
 app.get('/api/date-ideas', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM "DateIdeas" ORDER BY created_at DESC');
-    res.json(result.rows);
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.post('/api/date-ideas/:id/interest', authenticateToken, async (req, res) => {
-  const { id } = req.params;
-  try {
-    // Ensure the DateInterests table exists
     await pool.query(`
       CREATE TABLE IF NOT EXISTS "DateInterests" (
         "id" SERIAL PRIMARY KEY,
-        "dateIdeaId" INTEGER REFERENCES "DateIdeas"("id"),
-        "userId" INTEGER REFERENCES "Users"("id"),
+        "dateIdeaId" INTEGER REFERENCES "DateIdeas"("id") ON DELETE CASCADE,
+        "userId" INTEGER REFERENCES "Users"("id") ON DELETE CASCADE,
         "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE("dateIdeaId", "userId")
       );
     `);
-    
-    // Check if date idea exists
-    const dateIdeaCheck = await pool.query('SELECT * FROM "DateIdeas" WHERE id = $1', [id]);
-    if (dateIdeaCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Date idea not found' });
-    }
-    
-    // Insert interest, ignore if already exists
-    await pool.query(`
-      INSERT INTO "DateInterests" ("dateIdeaId", "userId") 
-      VALUES ($1, $2) 
-      ON CONFLICT ("dateIdeaId", "userId") DO NOTHING
-    `, [id, req.user.id]);
-    
-    res.json({ success: true });
+
+    const result = await pool.query(`
+      SELECT di.*, 
+        COALESCE(interests.count, 0) AS "interestCount",
+        CASE WHEN ui."dateIdeaId" IS NOT NULL THEN true ELSE false END AS "hasInterested"
+      FROM "DateIdeas" di
+      LEFT JOIN (
+        SELECT "dateIdeaId", COUNT(*) AS count
+        FROM "DateInterests"
+        GROUP BY "dateIdeaId"
+      ) interests ON interests."dateIdeaId" = di.id
+      LEFT JOIN (
+        SELECT "dateIdeaId"
+        FROM "DateInterests"
+        WHERE "userId" = $1
+      ) ui ON ui."dateIdeaId" = di.id
+      ORDER BY di.created_at DESC
+    `, [req.user.id]);
+
+    res.json(result.rows.map(row => ({
+      ...row,
+      interestCount: Number(row.interestCount || 0),
+      hasInterested: Boolean(row.hasInterested),
+    })));
   } catch (error) {
-    console.error('Error expressing interest:', error);
+    console.error('Error fetching date ideas:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 app.get('/api/premium-status', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query('SELECT is_premium, expires_at FROM "UserPremium" WHERE user_id = $1', [req.user.id]);

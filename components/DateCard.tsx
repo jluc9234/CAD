@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { DateIdea } from '../types';
+import React, { useEffect, useState } from 'react';
+import { DateIdea, DateInterestUpdate } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { usePremium } from '../contexts/PremiumContext';
 import { MapPinIcon, getRandomGradient, PlaneIcon, CalendarIcon, CurrencyDollarIcon, TagIcon } from '../constants';
@@ -12,14 +12,21 @@ interface DateCardProps {
 }
 
 const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
-  const [interestSent, setInterestSent] = useState(false);
+  const [hasInterested, setHasInterested] = useState(Boolean(dateIdea.hasInterested));
+  const [interestCount, setInterestCount] = useState<number>(dateIdea.interestCount ?? 0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDirectionsModalOpen, setIsDirectionsModalOpen] = useState(false);
   const { currentUser } = useAuth();
   const { isPremium } = usePremium();
   const [buttonGradient] = useState(() => getRandomGradient());
 
+  useEffect(() => {
+    setHasInterested(Boolean(dateIdea.hasInterested));
+    setInterestCount(dateIdea.interestCount ?? 0);
+  }, [dateIdea.hasInterested, dateIdea.interestCount]);
+
   const handleInterestClick = async () => {
-    setInterestSent(true); // Optimistically disable
+    setIsSubmitting(true);
     const token = localStorage.getItem('token');
     try {
       const response = await fetch(`${API_BASE}/date-ideas/${dateIdea.id}/interest`, {
@@ -29,11 +36,16 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
         },
       });
       if (!response.ok) {
-        setInterestSent(false); // Re-enable if failed
+        setIsSubmitting(false);
         console.error('Failed to express interest');
+        return;
       }
+      const data: DateInterestUpdate = await response.json();
+      setHasInterested(data.hasInterested);
+      setInterestCount(data.interestCount);
+      setIsSubmitting(false);
     } catch (error) {
-      setInterestSent(false); // Re-enable if error
+      setIsSubmitting(false);
       console.error('Error expressing interest:', error);
     }
   };
@@ -103,11 +115,14 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
             )}
             <button 
               onClick={handleInterestClick}
-              disabled={interestSent}
+              disabled={hasInterested || isSubmitting}
               className={`bg-gradient-to-r ${buttonGradient} text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-purple-500/40 transform hover:-translate-y-0.5 transition-all duration-300 text-sm disabled:opacity-60 disabled:transform-none disabled:shadow-none`}
             >
-              {interestSent ? "Interest Sent ✓" : "I'm Interested"}
+              {hasInterested ? "Interest Sent ✓" : isSubmitting ? "Sending..." : "I'm Interested"}
             </button>
+            <span className="text-sm text-slate-400">
+              {interestCount} interested
+            </span>
           </div>
         </div>
       </div>

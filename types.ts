@@ -40,6 +40,13 @@ export interface DateIdea {
   isOutOfTown?: boolean;
   budget?: BudgetOption;
   dressCode?: DressCodeOption;
+  interestCount?: number;
+  hasInterested?: boolean;
+}
+
+export interface DateInterestUpdate {
+  hasInterested: boolean;
+  interestCount: number;
 }
 
 export interface Message {

@@ -1,3 +1,9 @@
+    const handleInterestUpdate = (dateIdeaId: number, hasInterested: boolean, interestCount: number) => {
+        setDateIdeas(prev => prev.map(idea =>
+            idea.id === dateIdeaId ? { ...idea, hasInterested, interestCount } : idea
+        ));
+    };
+
 import React, { useState, useEffect } from 'react';
 import { ActiveView, DateIdea, Match } from './types';
 import { useAuth } from './contexts/AuthContext';
@@ -100,7 +106,13 @@ const App: React.FC = () => {
             case 'swipe':
                 return <SwipeDeck />;
             case 'dates':
-                return <DateMarketplace dateIdeas={dateIdeas} onCreateDate={() => setCreateDateVisible(true)} />;
+                return (
+                    <DateMarketplace 
+                        dateIdeas={dateIdeas} 
+                        onCreateDate={() => setCreateDateVisible(true)}
+                        onInterestUpdate={handleInterestUpdate}
+                    />
+                );
             case 'matches':
                 return <Matches onSelectMatch={setSelectedMatch} />;
             case 'profile':
