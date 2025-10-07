@@ -182,6 +182,18 @@ app.post('/api/date-ideas/:id/interest', authenticateToken, async (req, res) => 
       );
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "Notifications" (
+        "id" SERIAL PRIMARY KEY,
+        "userId" INTEGER REFERENCES "Users"("id") ON DELETE CASCADE,
+        "type" VARCHAR(50) NOT NULL,
+        "message" TEXT NOT NULL,
+        "relatedId" INTEGER,
+        "isRead" BOOLEAN DEFAULT FALSE,
+        "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Check if date idea exists
     const dateIdeaCheck = await pool.query('SELECT * FROM "DateIdeas" WHERE id = $1', [id]);
     if (dateIdeaCheck.rows.length === 0) {
@@ -216,20 +228,6 @@ app.post('/api/date-ideas/:id/interest', authenticateToken, async (req, res) => 
     res.json({ success: true, hasInterested: true, interestCount });
   } catch (error) {
     console.error('Error expressing interest:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.get('/api/notifications', authenticateToken, async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT * FROM "Notifications"
-      WHERE "userId" = $1
-      ORDER BY "created_at" DESC
-    `, [req.user.id]);
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
