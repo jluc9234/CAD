@@ -234,6 +234,20 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM "Notifications"
+      WHERE "userId" = $1
+      ORDER BY "created_at" DESC
+    `, [req.user.id]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.post('/api/swipe', authenticateToken, async (req, res) => {
   const { swipedUserId, action } = req.body;
   try {
