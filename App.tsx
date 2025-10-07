@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ActiveView, DateIdea, Match } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { useNotification } from './contexts/NotificationContext';
-import { MOCK_DATE_IDEAS } from './data/mockData';
 
 // Components
 import LoginScreen from './components/LoginScreen';
@@ -27,7 +26,7 @@ const App: React.FC = () => {
     const [isMonetizationModalOpen, setMonetizationModalOpen] = useState(false);
     const [isCreateDateVisible, setCreateDateVisible] = useState(false);
     const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-    const [dateIdeas, setDateIdeas] = useState<DateIdea[]>(MOCK_DATE_IDEAS);
+    const [dateIdeas, setDateIdeas] = useState<DateIdea[]>([]);
     const handleInterestUpdate = (dateIdeaId: number, hasInterested: boolean, interestCount: number) => {
         setDateIdeas(prev => prev.map(idea =>
             idea.id === dateIdeaId ? { ...idea, hasInterested, interestCount } : idea
