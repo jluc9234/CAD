@@ -8,9 +8,10 @@ import { ActiveView } from '../types';
 interface HeaderProps {
     onPremiumClick: () => void;
     setActiveView: (view: ActiveView) => void;
+    notificationsCount?: number;
 }
 
-const Header: React.FC<HeaderProps> = ({ onPremiumClick, setActiveView }) => {
+const Header: React.FC<HeaderProps> = ({ onPremiumClick, setActiveView, notificationsCount = 0 }) => {
     const { isPremium } = usePremium();
     const { currentUser } = useAuth();
     const { notifications } = useNotification();
@@ -41,13 +42,13 @@ const Header: React.FC<HeaderProps> = ({ onPremiumClick, setActiveView }) => {
                 
                 {/* Notification Bell */}
                 <button 
-                    onClick={() => setActiveView('matches')}
+                    onClick={() => setActiveView('notifications')}
                     className="relative p-2 text-slate-400 hover:text-white transition-colors"
                 >
                     <BellIcon className="w-6 h-6" />
-                    {notifications.length > 0 && (
+                    {notificationsCount > 0 && (
                         <div className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">
-                            {notifications.length > 9 ? '9+' : notifications.length}
+                            {notificationsCount > 9 ? '9+' : notificationsCount}
                         </div>
                     )}
                 </button>

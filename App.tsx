@@ -1,32 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { ActiveView, DateIdea, Match } from './types';
+import { ActiveView, DateIdea, Match, PersistentNotification } from './types';
 import { useAuth } from './contexts/AuthContext';
-import { useNotification } from './contexts/NotificationContext';
 
-// Components
-import LoginScreen from './components/LoginScreen';
-import Header from './components/Header';
-import BottomNav from './components/BottomNav';
 import SwipeDeck from './components/SwipeDeck';
 import DateMarketplace from './components/DateMarketplace';
-import CreateDate from './components/CreateDate';
-import Matches from './components/Matches';
 import ChatWindow from './components/ChatWindow';
-import ProfileScreen from './components/ProfileScreen';
+import Header from './components/Header';
+import LoginScreen from './components/LoginScreen';
+import Matches from './components/Matches';
 import MonetizationModal from './components/MonetizationModal';
 import NotificationToast from './components/NotificationToast';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
+import BottomNav from './components/BottomNav';
+import CreateDate from './components/CreateDate';
+import ProfileScreen from './components/ProfileScreen';
+import Notifications from './components/Notifications';
+
+import { useNotification } from './contexts/NotificationContext';
+
 const App: React.FC = () => {
     const { currentUser } = useAuth();
     const { notifications } = useNotification();
-
     const [activeView, setActiveView] = useState<ActiveView>('swipe');
     const [isMonetizationModalOpen, setMonetizationModalOpen] = useState(false);
     const [isCreateDateVisible, setCreateDateVisible] = useState(false);
     const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
     const [dateIdeas, setDateIdeas] = useState<DateIdea[]>([]);
+    const [persistentNotifications, setPersistentNotifications] = useState<PersistentNotification[]>([]);
     const handleInterestUpdate = (dateIdeaId: number, hasInterested: boolean, interestCount: number) => {
         setDateIdeas(prev => prev.map(idea =>
             idea.id === dateIdeaId ? { ...idea, hasInterested, interestCount } : idea
@@ -94,9 +96,27 @@ const App: React.FC = () => {
         }
     };
 
+    const fetchNotifications = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`${API_BASE}/notifications`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const notifs = await response.json();
+                setPersistentNotifications(notifs);
+            } else {
+                console.error('Failed to fetch notifications');
+            }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        }
+    };
+
     useEffect(() => {
         if (currentUser) {
             fetchDateIdeas();
+            fetchNotifications();
         }
     }, [currentUser]);
 
@@ -113,16 +133,16 @@ const App: React.FC = () => {
                     <DateMarketplace 
                         dateIdeas={dateIdeas} 
                         onCreateDate={() => setCreateDateVisible(true)}
-                        onInterestUpdate={handleInterestUpdate}
                     />
                 );
             case 'matches':
                 return <Matches onSelectMatch={setSelectedMatch} />;
+            case 'notifications':
+                return <Notifications notifications={persistentNotifications} onBack={() => setActiveView('swipe')} />;
             case 'profile':
                 return <ProfileScreen onPremiumClick={() => setMonetizationModalOpen(true)} />;
             default:
                 return <SwipeDeck />;
-        }
     };
     
     const appStyle: React.CSSProperties = currentUser?.background
@@ -137,7 +157,7 @@ const App: React.FC = () => {
 
     return (
         <div className="bg-gradient-to-br from-slate-900 via-black to-slate-900 h-screen w-screen overflow-hidden text-white font-sans transition-all duration-500" style={appStyle}>
-            <Header onPremiumClick={() => setMonetizationModalOpen(true)} setActiveView={setActiveView} />
+            <Header onPremiumClick={() => setMonetizationModalOpen(true)} setActiveView={setActiveView} notificationsCount={persistentNotifications.length} />
 
             <main className="h-full w-full">
                 {renderActiveView()}

@@ -44,9 +44,14 @@ export interface DateIdea {
   hasInterested?: boolean;
 }
 
-export interface DateInterestUpdate {
-  hasInterested: boolean;
-  interestCount: number;
+export interface PersistentNotification {
+  id: number;
+  userId: number;
+  type: string;
+  message: string;
+  relatedId?: number;
+  isRead: boolean;
+  created_at: string;
 }
 
 export interface Message {
@@ -62,7 +67,7 @@ export interface Match {
   messages: Message[];
 }
 
-export type ActiveView = 'swipe' | 'dates' | 'matches' | 'profile';
+export type ActiveView = 'swipe' | 'dates' | 'matches' | 'profile' | 'notifications';
 
 export type NotificationType = 'match' | 'interest' | 'info';
 
