@@ -34,6 +34,11 @@ const App: React.FC = () => {
     const [isCreateDateVisible, setCreateDateVisible] = useState(false);
     const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
     const [dateIdeas, setDateIdeas] = useState<DateIdea[]>(MOCK_DATE_IDEAS);
+    const handleInterestUpdate = (dateIdeaId: number, hasInterested: boolean, interestCount: number) => {
+        setDateIdeas(prev => prev.map(idea =>
+            idea.id === dateIdeaId ? { ...idea, hasInterested, interestCount } : idea
+        ));
+    };
 
     const handlePostDate = async (newDate: DateIdea) => {
         const token = localStorage.getItem('token');
