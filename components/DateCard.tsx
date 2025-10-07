@@ -31,6 +31,11 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea, onInterestUpdate }) => {
     setIsSubmitting(true);
     const token = localStorage.getItem('token');
     console.log('Token exists:', !!token);
+    // Optimistically update UI
+    setHasInterested(true);
+    setInterestCount(prev => prev + 1);
+    onInterestUpdate(dateIdea.id, true, (dateIdea.interestCount ?? 0) + 1);
+    setIsSubmitting(false);
     try {
       console.log('Calling API:', `${API_BASE}/date-ideas/${dateIdea.id}/interest`);
       const response = await fetch(`${API_BASE}/date-ideas/${dateIdea.id}/interest`, {
@@ -43,20 +48,25 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea, onInterestUpdate }) => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API error:', errorText);
-        setIsSubmitting(false);
-        console.error('Failed to express interest');
+        // Revert on failure
+        setHasInterested(Boolean(dateIdea.hasInterested));
+        setInterestCount(dateIdea.interestCount ?? 0);
+        onInterestUpdate(dateIdea.id, Boolean(dateIdea.hasInterested), dateIdea.interestCount ?? 0);
         return;
       }
       const data: DateInterestUpdate = await response.json();
       console.log('API response data:', data);
+      // Update with real data
       setHasInterested(data.hasInterested);
       setInterestCount(data.interestCount);
       onInterestUpdate(dateIdea.id, data.hasInterested, data.interestCount);
       console.log('Interest updated successfully');
-      setIsSubmitting(false);
     } catch (error) {
       console.error('Error expressing interest:', error);
-      setIsSubmitting(false);
+      // Revert on error
+      setHasInterested(Boolean(dateIdea.hasInterested));
+      setInterestCount(dateIdea.interestCount ?? 0);
+      onInterestUpdate(dateIdea.id, Boolean(dateIdea.hasInterested), dateIdea.interestCount ?? 0);
     }
   };
 

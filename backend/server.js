@@ -106,13 +106,6 @@ app.post('/api/swipe', authenticateToken, async (req, res) => {
       INSERT INTO "Swipes" (user_id, swiped_user_id, action) 
       VALUES ($1, $2, $3)
     `, [req.user.id, swipedUserId, action]);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.get('/api/date-ideas', authenticateToken, async (req, res) => {
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS "DateInterests" (
@@ -124,37 +117,13 @@ app.get('/api/date-ideas', authenticateToken, async (req, res) => {
       );
     `);
 
-    const result = await pool.query(`
-      SELECT di.*, 
-        COALESCE(interests.count, 0) AS "interestCount",
-        CASE WHEN ui."dateIdeaId" IS NOT NULL THEN true ELSE false END AS "hasInterested"
-      FROM "DateIdeas" di
-      LEFT JOIN (
-        SELECT "dateIdeaId", COUNT(*) AS count
-        FROM "DateInterests"
-        GROUP BY "dateIdeaId"
-      ) interests ON interests."dateIdeaId" = di.id
-      LEFT JOIN (
-        SELECT "dateIdeaId"
-        FROM "DateInterests"
-        WHERE "userId" = $1
-      ) ui ON ui."dateIdeaId" = di.id
-      ORDER BY di.created_at DESC
-    `, [req.user.id]);
+    // Check if date idea exists
+    const dateIdeaCheck = await pool.query('SELECT * FROM "DateIdeas" WHERE id = $1', [id]);
+    if (dateIdeaCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Date idea not found' });
+    }
 
-    res.json(result.rows.map(row => ({
-      ...row,
-      interestCount: Number(row.interestCount || 0),
-      hasInterested: Boolean(row.hasInterested),
-    })));
-  } catch (error) {
-    console.error('Error fetching date ideas:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-app.get('/api/premium-status', authenticateToken, async (req, res) => {
-  try {
-    const result = await pool.query('SELECT is_premium, expires_at FROM "UserPremium" WHERE user_id = $1', [req.user.id]);
+    // Insert interest, ignore if already exists
     const premium = result.rows[0] || { is_premium: false, expires_at: null };
     res.json(premium);
   } catch (error) {

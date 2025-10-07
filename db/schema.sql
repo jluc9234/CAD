@@ -1,11 +1,11 @@
 -- Drop the table if it exists to start fresh (optional, good for testing)
 DROP TABLE IF EXISTS "Messages" CASCADE;
-DROP TABLE IF EXISTS "Matches" CASCADE;
 DROP TABLE IF EXISTS "Swipes" CASCADE;
 DROP TABLE IF EXISTS "UserPremium" CASCADE;
 DROP TABLE IF EXISTS "DateInterests" CASCADE;
 DROP TABLE IF EXISTS "DateIdeas" CASCADE;
 DROP TABLE IF EXISTS "Users" CASCADE;
+DROP TABLE IF EXISTS "Notifications" CASCADE;
 
 -- Create the Users table
 CREATE TABLE "Users" (
@@ -16,12 +16,9 @@ CREATE TABLE "Users" (
     "phone" VARCHAR(50),
     "password" VARCHAR(255) NOT NULL, -- In a real app, this should be a hashed password
     "bio" TEXT,
-    "images" TEXT[], -- Array of strings for image URLs
-    "interests" TEXT[], -- Array of strings for interests
-    "background" TEXT -- Can be a data URL or a regular URL for the background image
-);
-
--- Create the DateIdeas table
+    "images" TEXT[],
+    "background" VARCHAR(500),
+    "interests" TEXT[],
 CREATE TABLE "DateIdeas" (
     "id" SERIAL PRIMARY KEY,
     "title" VARCHAR(255) NOT NULL,
@@ -44,6 +41,17 @@ CREATE TABLE "DateInterests" (
     "userId" INTEGER REFERENCES "Users"("id"),
     "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE("dateIdeaId", "userId")
+);
+
+-- Create the Notifications table
+CREATE TABLE "Notifications" (
+    "id" SERIAL PRIMARY KEY,
+    "userId" INTEGER REFERENCES "Users"("id") ON DELETE CASCADE,
+    "type" VARCHAR(50) NOT NULL, -- e.g., 'interest', 'match'
+    "message" TEXT NOT NULL,
+    "relatedId" INTEGER, -- e.g., dateIdeaId or matchId
+    "isRead" BOOLEAN DEFAULT FALSE,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Insert initial user data for the application
