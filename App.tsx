@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+/// <reference types="vite/client" />
+
+import React, { useState, useEffect } from 'react';
 import { ActiveView, DateIdea, Match } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { useNotification } from './contexts/NotificationContext';
@@ -16,6 +18,9 @@ import ChatWindow from './components/ChatWindow';
 import ProfileScreen from './components/ProfileScreen';
 import MonetizationModal from './components/MonetizationModal';
 import NotificationToast from './components/NotificationToast';
+import NotificationPage from './components/NotificationPage';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const App: React.FC = () => {
     const { currentUser } = useAuth();
@@ -27,11 +32,58 @@ const App: React.FC = () => {
     const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
     const [dateIdeas, setDateIdeas] = useState<DateIdea[]>(MOCK_DATE_IDEAS);
 
-    const handlePostDate = (newDate: DateIdea) => {
-        setDateIdeas(prev => [newDate, ...prev]);
-        setCreateDateVisible(false);
-        setActiveView('dates');
+    const handlePostDate = async (newDate: DateIdea) => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`${API_BASE}/date-ideas`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title: newDate.title,
+                    description: newDate.description,
+                    category: newDate.category,
+                    location: newDate.location,
+                    date: newDate.date,
+                    budget: newDate.budget,
+                    dressCode: newDate.dressCode
+                })
+            });
+            if (response.ok) {
+                const savedDate = await response.json();
+                setDateIdeas(prev => [savedDate, ...prev]);
+                setCreateDateVisible(false);
+                setActiveView('dates');
+            } else {
+                alert('Failed to save date idea. Please try again.');
+            }
+        } catch (error) {
+            alert('Error posting date. Please check your connection and try again.');
+        }
     };
+
+    const fetchDateIdeas = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`${API_BASE}/date-ideas`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const ideas = await response.json();
+                setDateIdeas(ideas);
+            }
+        } catch (error) {
+            console.error('Error fetching date ideas:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (currentUser) {
+            fetchDateIdeas();
+        }
+    }, [currentUser]);
 
     if (!currentUser) {
         return <LoginScreen />;
@@ -47,6 +99,8 @@ const App: React.FC = () => {
                 return <Matches onSelectMatch={setSelectedMatch} />;
             case 'profile':
                 return <ProfileScreen onPremiumClick={() => setMonetizationModalOpen(true)} />;
+            case 'notifications':
+                return <NotificationPage />;
             default:
                 return <SwipeDeck />;
         }

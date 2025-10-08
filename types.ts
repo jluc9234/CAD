@@ -55,7 +55,7 @@ export interface Match {
   messages: Message[];
 }
 
-export type ActiveView = 'swipe' | 'dates' | 'matches' | 'profile';
+export type ActiveView = 'swipe' | 'dates' | 'matches' | 'profile' | 'notifications';
 
 export type NotificationType = 'match' | 'interest' | 'info';
 
