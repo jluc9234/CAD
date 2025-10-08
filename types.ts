@@ -24,12 +24,11 @@ export interface User {
   bio: string;
   images: string[];
   interests: string[];
-  background?: string; // Can be a data URL for uploaded/generated images
+  location: string;
 }
 
 export interface DateIdea {
   id: number;
-  title: string;
   description: string;
   category: DateCategory;
   authorId: number;
