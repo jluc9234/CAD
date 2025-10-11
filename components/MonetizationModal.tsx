@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { SparklesIcon, getRandomGradient } from '../constants';
+import { useNotification } from '../contexts/NotificationContext';
 
 interface MonetizationModalProps {
   isOpen: boolean;
@@ -7,9 +9,49 @@ interface MonetizationModalProps {
 }
 
 const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }) => {
+  const { currentUser } = useAuth();
+  const { addNotification } = useNotification();
   const [iconGradient] = useState(() => getRandomGradient());
   const [titleGradient] = useState(() => getRandomGradient());
-  const [buttonGradient, setButtonGradient] = useState(() => getRandomGradient());
+  const paypalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && paypalRef.current && currentUser && (window as any).paypal) {
+        // Clear any previous buttons
+        if(paypalRef.current.innerHTML) {
+            paypalRef.current.innerHTML = '';
+        }
+
+        (window as any).paypal.Buttons({
+            createOrder: (_data: any, actions: any) => {
+                return actions.order.create({
+                    purchase_units: [{
+                        description: "Create-A-Date Premium (One-Time)",
+                        amount: {
+                            value: '10.00',
+                            currency_code: 'USD'
+                        },
+                        // IMPORTANT: We attach the user's ID here.
+                        // The backend webhook will use this to identify who made the purchase.
+                        custom_id: currentUser.id 
+                    }]
+                });
+            },
+            onApprove: async (_data: any, actions: any) => {
+                const order = await actions.order.capture();
+                console.log("Payment successful:", order);
+                addNotification("Payment successful! Your premium status will be updated shortly.", 'info');
+                // The backend webhook will handle the database update.
+                onClose();
+            },
+            onError: (err: any) => {
+                console.error("PayPal Error:", err);
+                addNotification("An error occurred with your payment. Please try again.", 'info');
+            }
+        }).render(paypalRef.current);
+    }
+  }, [isOpen, currentUser]);
+
 
   if (!isOpen) return null;
   
@@ -30,7 +72,7 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
           <h2 className={`text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r ${titleGradient}`}>
             Unlock Premium
           </h2>
-          <p className="text-slate-300 mt-2">One-time payment. Endless possibilities.</p>
+          <p className="text-slate-300 mt-2">One-time payment for lifetime access.</p>
         </div>
 
         <div className="my-6 space-y-3 text-slate-200">
@@ -43,17 +85,9 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
         </div>
 
         <div className="mt-8">
-            <a 
-              href="https://paypal.me/jluc92/10.00" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              onClick={() => setButtonGradient(getRandomGradient())}
-              className={`block w-full text-center bg-gradient-to-r ${buttonGradient} text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-cyan-400/50 transform hover:-translate-y-1 transition-all duration-300 text-lg`}
-            >
-              Upgrade for $10.00
-            </a>
+            <div ref={paypalRef}></div>
             <p className="text-xs text-slate-400 mt-4 text-center">
-                After payment, your premium status will be updated automatically. This may take a few moments.
+                Your premium status will be updated automatically after payment.
             </p>
         </div>
 
