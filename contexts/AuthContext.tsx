@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User } from '../types';
 import { apiService } from '../services/apiService';
-import { supabase } from '../services/supabaseClient';
+import { jwtDecode } from 'jwt-decode';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -18,56 +18,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getInitialUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+    const checkLoggedInUser = async () => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
         try {
-          const userProfile = await apiService.getUserProfile(session.user.id);
+          // You could decode to check for expiry here if needed
+          const decodedToken: { id: string } = jwtDecode(token);
+          const userProfile = await apiService.getUserProfile(decodedToken.id);
           setCurrentUser(userProfile);
         } catch (error) {
-          console.error("Error fetching initial user profile:", error);
-          // might need to sign out if profile doesn't exist
+          console.error("Session check failed:", error);
+          // Token is invalid or expired, so log out
+          localStorage.removeItem('authToken');
+          setCurrentUser(null);
         }
       }
       setLoading(false);
     };
 
-    getInitialUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          try {
-            const userProfile = await apiService.getUserProfile(session.user.id);
-            setCurrentUser(userProfile);
-          } catch (error) {
-             console.error("Error fetching user profile on auth change:", error);
-          }
-        } else {
-          setCurrentUser(null);
-        }
-      }
-    );
-
-    return () => {
-      subscription?.unsubscribe();
-    };
+    checkLoggedInUser();
   }, []);
 
+  const fetchAndSetUser = async () => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        const decodedToken: { id: string } = jwtDecode(token);
+        const userProfile = await apiService.getUserProfile(decodedToken.id);
+        setCurrentUser(userProfile);
+    }
+  };
 
   const login = async (email: string, pass: string) => {
     await apiService.login(email, pass);
-    // onAuthStateChange will handle state update
+    await fetchAndSetUser();
   };
 
-  const signup = async (name: string, email: string, pass: string) => {
+  const signup = async (name: string, email: string, pass:string) => {
     await apiService.signup(name, email, pass);
-    // onAuthStateChange will handle state update
+    await fetchAndSetUser();
   };
 
-  const logout = async () => {
-    await apiService.logout();
-    setCurrentUser(null); // Set to null immediately for faster UI response
+  const logout = () => {
+    apiService.logout();
+    setCurrentUser(null);
   };
   
   const updateUser = async (updatedUser: User) => {
@@ -82,6 +75,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+
+// Add jwt-decode to the importmap or as a script tag to make it available globally
+// A simple way to do this without changing index.html for this context
+// is to dynamically load the script.
+const script = document.createElement('script');
+script.src = 'https://unpkg.com/jwt-decode@4.0.0/build/jwt-decode.js';
+script.async = true;
+document.head.appendChild(script);
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);

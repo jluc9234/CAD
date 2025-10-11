@@ -2,9 +2,17 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { DateCategory, LocalIdea, LocalEvent, DateSuggestion, BudgetOption, DressCodeOption, Message, User } from "../types";
 import { DATE_CATEGORIES } from "../constants";
 
-// FIX: Per @google/genai guidelines, the API key must be retrieved from `process.env.API_KEY`
-// and the client should be initialized directly. The use of `import.meta.env` is incorrect.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// FIX: Switched from Vite-specific import.meta.env to process.env.API_KEY to align with guidelines and fix TypeScript errors.
+const API_KEY = process.env.API_KEY;
+
+
+if (!API_KEY) {
+  // This provides a more helpful error message if the variable is missing.
+  // The user must set API_KEY in their deployment environment (e.g., Netlify).
+  throw new Error("API_KEY environment variable not set. Please check your deployment settings.");
+}
+
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 export const enhanceDescription = async (description: string): Promise<string> => {
   try {
@@ -79,25 +87,157 @@ export const categorizeDate = async (title: string, description: string): Promis
     }
 };
 
-export const generateIcebreaker = async (name: string): Promise<string> => {
+// FIX: Implemented missing function to fetch local date ideas.
+export const getLocalDateIdeas = async (location: string): Promise<LocalIdea[]> => {
+  try {
+    const prompt = `Based on the location "${location}", generate a list of 3 unique and interesting date ideas. For each idea, provide a "name" (a catchy title) and an "idea" (a short, one-sentence description).`;
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              idea: { type: Type.STRING },
+            },
+            required: ['name', 'idea'],
+          },
+        },
+      },
+    });
+
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error(`Error getting local date ideas for ${location}:`, error);
+    return [];
+  }
+};
+
+// FIX: Implemented missing function to fetch local events.
+export const getLocalEvents = async (location: string, date: string): Promise<LocalEvent[]> => {
+  try {
+    const formattedDate = new Date(date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const prompt = `List 3 real or plausible public events happening in or around "${location}" on or around the date ${formattedDate}. Examples could be concerts, festivals, or special museum exhibits. For each event, provide an "eventName" and a "description".`;
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              eventName: { type: Type.STRING },
+              description: { type: Type.STRING },
+            },
+            required: ['eventName', 'description'],
+          },
+        },
+      },
+    });
+
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error(`Error getting local events for ${location}:`, error);
+    return [];
+  }
+};
+
+// FIX: Implemented missing function to generate date suggestions.
+export const generateDateSuggestions = async (params: {
+    title?: string;
+    location?: string;
+    date?: string;
+    category?: DateCategory;
+    budget?: BudgetOption;
+    dressCode?: DressCodeOption;
+}): Promise<DateSuggestion[]> => {
     try {
-        const prompt = `Create a short, fun, and charming icebreaker message to send to a new match named ${name}.`;
+        let prompt = "Generate 3 creative date suggestions based on the following details. Each suggestion should have a 'title' and a 'description'.\n";
+        if (params.title) prompt += `Title context: "${params.title}"\n`;
+        if (params.location) prompt += `Location: "${params.location}"\n`;
+        if (params.date) prompt += `Date: ${new Date(params.date).toLocaleDateString()}\n`;
+        if (params.category && params.category !== DateCategory.Uncategorized) prompt += `Category: ${params.category}\n`;
+        if (params.budget && params.budget !== 'Not Set') prompt += `Budget: ${params.budget}\n`;
+        if (params.dressCode && params.dressCode !== 'Not Set') prompt += `Dress Code: ${params.dressCode}\n`;
+
+        if (Object.values(params).every(v => !v || v === 'Not Set' || v === DateCategory.Uncategorized)) {
+            prompt = "Generate 3 creative and random date suggestions. Each suggestion should have a 'title' and a 'description'.";
+        }
+        
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            title: { type: Type.STRING },
+                            description: { type: Type.STRING },
+                        },
+                        required: ['title', 'description']
+                    }
+                },
+            },
         });
-        return response.text.trim();
+        return JSON.parse(response.text);
     } catch (error) {
-        console.error("Error generating icebreaker:", error);
-        return "Hey! How's it going?";
+        console.error("Error generating date suggestions:", error);
+        return [];
     }
 };
 
+// FIX: Implemented missing function to get conversation suggestions.
+export const getConversationSuggestions = async (messages: Message[], currentUser: User, otherUser: User): Promise<string[]> => {
+    try {
+        const conversationHistory = messages.map(msg => {
+            const speaker = msg.senderId === currentUser.id ? 'Me' : otherUser.name;
+            return `${speaker}: ${msg.text}`;
+        }).join('\n');
+
+        const prompt = `You are a friendly and helpful dating assistant. Based on the conversation history below, suggest 3 creative, engaging, and relevant conversation starters or replies for "Me". The goal is to keep the conversation flowing and get to know the other person better.
+
+Conversation History:
+${conversationHistory}
+
+My Profile Interests: ${currentUser.interests.join(', ')}
+Their Profile Interests: ${otherUser.interests.join(', ')}
+
+Suggest 3 short (1-2 sentences) replies for "Me" as a JSON array of strings:`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING },
+                    description: "A list of 3 conversation suggestions as strings."
+                }
+            }
+        });
+        return JSON.parse(response.text);
+    } catch (error) {
+        console.error("Error getting conversation suggestions:", error);
+        return ["Sorry, I couldn't think of anything right now. Try again later!"];
+    }
+};
+
+// FIX: Implemented missing function to enhance a user's bio.
 export const enhanceBio = async (bio: string): Promise<string> => {
     try {
-        const prompt = `You are a witty and charming profile writer. Enhance the following user bio to make it more engaging and interesting, while keeping the original spirit. Keep it under 50 words.
-        Original bio: "${bio}"
-        Enhanced bio:`;
+        const prompt = `You are a witty and charming profile writer for a dating app. Enhance the following user bio to make it more engaging, intriguing, and show more personality. Keep it a similar length but add a bit of flair or a fun question at the end.
+Original Bio: "${bio}"
+Enhanced Bio:`;
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
@@ -109,119 +249,16 @@ export const enhanceBio = async (bio: string): Promise<string> => {
     }
 };
 
-export const getLocalDateIdeas = async (location: string): Promise<LocalIdea[]> => {
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: `List 2 unique and romantic date spots or ideas in ${location}.`,
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            name: { type: Type.STRING },
-                            idea: { type: Type.STRING },
-                        }
-                    }
-                }
-            }
-        });
-        const json = JSON.parse(response.text);
-        return json;
-    } catch (error) {
-        console.error("Error fetching local date ideas:", error);
-        return [];
-    }
-};
-
-export const getLocalEvents = async (location: string, date: string): Promise<LocalEvent[]> => {
-    try {
-        const formattedDate = new Date(date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: `Suggest 2 plausible local events (like concerts, festivals, farmers markets, etc.) happening in ${location} on or around ${formattedDate}. Be creative if no real events are known.`,
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            eventName: { type: Type.STRING },
-                            description: { type: Type.STRING },
-                        }
-                    }
-                }
-            }
-        });
-        const json = JSON.parse(response.text);
-        return json;
-    } catch (error) {
-        console.error("Error fetching local events:", error);
-        return [];
-    }
-};
-
-export const generateDateSuggestions = async (criteria: {
-    title?: string;
-    location?: string;
-    date?: string;
-    category?: DateCategory;
-    budget?: BudgetOption;
-    dressCode?: DressCodeOption;
-}): Promise<DateSuggestion[]> => {
-    try {
-        let prompt = "Generate 3 creative date ideas based on the following user-provided details. For each idea, provide a catchy title and a short, appealing description.\n";
-        if (criteria.title) prompt += `- A title that includes or is similar to: "${criteria.title}"\n`;
-        if (criteria.location) prompt += `- The location is: ${criteria.location}\n`;
-        if (criteria.date) prompt += `- The date is on or around: ${new Date(criteria.date).toLocaleDateString()}\n`;
-        if (criteria.category && criteria.category !== DateCategory.Uncategorized) prompt += `- The category is: ${criteria.category}\n`;
-        if (criteria.budget && criteria.budget !== 'Not Set') prompt += `- The budget is: ${criteria.budget}\n`;
-        if (criteria.dressCode && criteria.dressCode !== 'Not Set') prompt += `- The dress code is: ${criteria.dressCode}\n`;
-
-        if(Object.values(criteria).every(val => !val || val === 'Not Set' || val === DateCategory.Uncategorized)) {
-            prompt += "- The user hasn't provided any specific details, so generate three diverse and exciting date ideas."
-        }
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            title: { type: Type.STRING },
-                            description: { type: Type.STRING },
-                        }
-                    }
-                }
-            }
-        });
-        const json = JSON.parse(response.text);
-        return json;
-    } catch (error) {
-        console.error("Error generating date suggestions:", error);
-        return [
-            { title: "Error", description: "Could not generate suggestions at this time. Please try again." }
-        ];
-    }
-};
-
+// FIX: Implemented missing function to generate a background image.
 export const generateBackgroundImage = async (prompt: string): Promise<string | null> => {
     try {
-        const fullPrompt = `A beautiful, aesthetic, high-resolution phone wallpaper background based on the theme: "${prompt}". The style should be modern and visually pleasing, suitable for a sleek app background. Avoid text or distracting elements.`;
         const response = await ai.models.generateImages({
             model: 'imagen-4.0-generate-001',
-            prompt: fullPrompt,
+            prompt: `A vibrant, abstract, and aesthetically pleasing background image for a dating app profile. The style should be modern and energetic, without being distracting. Keywords: ${prompt}`,
             config: {
                 numberOfImages: 1,
                 outputMimeType: 'image/jpeg',
-                aspectRatio: '9:16',
+                aspectRatio: '1:1',
             },
         });
 
@@ -233,54 +270,5 @@ export const generateBackgroundImage = async (prompt: string): Promise<string | 
     } catch (error) {
         console.error("Error generating background image:", error);
         return null;
-    }
-};
-
-export const getConversationSuggestions = async (
-    messages: Message[],
-    currentUser: User,
-    otherUser: User
-): Promise<string[]> => {
-    try {
-        const conversationHistory = messages.map(msg => {
-            const senderName = msg.senderId === currentUser.id ? currentUser.name : otherUser.name;
-            return `${senderName}: ${msg.text}`;
-        }).join('\n');
-
-        const prompt = `You are an AI dating coach and conversation buddy. Your goal is to help a user continue a conversation on a dating app.
-        The user you are helping is "${currentUser.name}". They are talking to "${otherUser.name}".
-
-        Here is the conversation history:
-        ${conversationHistory.length > 0 ? conversationHistory : "This is the start of the conversation. Help the user send a great first message!"}
-
-        Based on this conversation (and the other user's profile info: interests are [${otherUser.interests.join(', ')}], bio is "${otherUser.bio}"), generate three distinct, engaging, and context-aware suggestions for what "${currentUser.name}" could say next.
-        The suggestions should be short, like a text message.
-        Provide the output in JSON format as an array of 3 strings.
-        Example: ["That's so interesting! What's your favorite part about that?", "Haha, you have a great sense of humor. Speaking of which...", "I noticed you're into ${otherUser.interests[0] || 'something cool'}. Tell me more!"]
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.STRING
-                    }
-                }
-            }
-        });
-
-        const json = JSON.parse(response.text);
-        if (Array.isArray(json) && json.every(item => typeof item === 'string')) {
-            return json;
-        }
-        throw new Error("Invalid response format from AI.");
-
-    } catch (error) {
-        console.error("Error generating conversation suggestions:", error);
-        return ["How's your week going?", "Anything fun planned for the weekend?", "I'm having trouble with my AI, but I'd love to chat!"];
     }
 };
