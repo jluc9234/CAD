@@ -15,7 +15,7 @@ export type DressCodeOption = 'Not Set' | 'Casual' | 'Smart Casual' | 'Formal' |
 
 
 export interface User {
-  id: number;
+  id: string;
   name: string;
   age: number;
   email: string;
@@ -33,7 +33,7 @@ export interface DateIdea {
   title: string;
   description: string;
   category: DateCategory;
-  authorId: number;
+  authorId: string;
   authorName: string;
   authorImage: string;
   location?: string;
@@ -45,7 +45,7 @@ export interface DateIdea {
 
 export interface Message {
   id: number;
-  senderId: number; // User ID of the sender
+  senderId: string; // User ID of the sender
   text: string;
   timestamp: string;
 }
@@ -57,18 +57,18 @@ export interface Match {
   interestType: 'swipe' | 'date';
   interestExpiresAt?: string | null; // ISO string for expiry, or null if permanent
   dateIdeaId?: number;
-  dateAuthorId?: number;
+  dateAuthorId?: string;
 }
 
 // This is how a match would be represented in a database
 export interface MatchData {
     id: number;
-    participants: number[]; // Array of two user IDs
+    participants: string[]; // Array of two user IDs
     messages: Message[];
     interestType: 'swipe' | 'date';
     interestExpiresAt?: string | null;
     dateIdeaId?: number;
-    dateAuthorId?: number;
+    dateAuthorId?: string;
 }
 
 

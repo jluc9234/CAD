@@ -27,14 +27,19 @@ const SwipeDeck: React.FC = () => {
       fetchUsers();
   }, [currentUser]);
   
-  const swipeableUsers = useMemo(() => 
-    users
+  const swipeableUsers = useMemo(() => {
+    const stringToSeed = (str: string | undefined) => {
+        if (!str) return 0;
+        return str.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    }
+
+    return users
         .map(user => ({
             ...user,
             // Generate a pseudo-random but stable match percentage for each user
-            matchPercentage: (user.id * 37 + (currentUser?.id || 0) * 29) % 41 + 60
-        }))
-  , [users, currentUser]);
+            matchPercentage: (stringToSeed(user.id) * 37 + (currentUser ? stringToSeed(currentUser.id) : 0) * 29) % 41 + 60
+        }));
+  }, [users, currentUser]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
 

@@ -2,7 +2,8 @@ import { User, DateIdea, Match, DateCategory, Message } from '../types';
 
 export const MOCK_USERS: User[] = [
   {
-    id: 1,
+    // FIX: Changed user ID from number to string to match the User type.
+    id: '1',
     name: 'Chloe',
     age: 28,
     email: 'chloe@email.com',
@@ -22,7 +23,8 @@ export const MOCK_USERS: User[] = [
     isPremium: true,
   },
   {
-    id: 2,
+    // FIX: Changed user ID from number to string to match the User type.
+    id: '2',
     name: 'Marcus',
     age: 31,
     email: 'marcus@email.com',
@@ -38,7 +40,8 @@ export const MOCK_USERS: User[] = [
     isPremium: false,
   },
   {
-    id: 3,
+    // FIX: Changed user ID from number to string to match the User type.
+    id: '3',
     name: 'Sophia',
     age: 26,
     email: 'sophia@email.com',
@@ -54,7 +57,8 @@ export const MOCK_USERS: User[] = [
     isPremium: false,
   },
   {
-    id: 4,
+    // FIX: Changed user ID from number to string to match the User type.
+    id: '4',
     name: 'Leo',
     age: 29,
     email: 'demo@user.com',
@@ -77,7 +81,8 @@ export const MOCK_DATE_IDEAS: DateIdea[] = [
     title: 'Stargazing Picnic with Hot Cocoa',
     description: 'Let\'s escape the city lights for a night. We can pack a blanket, a thermos of delicious hot cocoa, and some snacks. We\'ll find a quiet spot, lay back, and watch the stars while sharing stories. It\'s simple, romantic, and a great way to connect.',
     category: DateCategory.OutdoorsAndAdventure,
-    authorId: 2,
+    // FIX: Changed author ID from number to string to match the DateIdea type.
+    authorId: '2',
     authorName: 'Marcus',
     authorImage: 'https://picsum.photos/seed/user2/100/100',
     location: 'Griffith Observatory, Los Angeles',
@@ -90,7 +95,8 @@ export const MOCK_DATE_IDEAS: DateIdea[] = [
     title: 'Competitive Pottery Throwing Class',
     description: 'Ready to get our hands dirty? We\'ll take a beginner\'s pottery class and see who can make the least wobbly bowl. Loser buys the victory drinks afterward. A fun way to be creative and a little competitive.',
     category: DateCategory.ArtsAndCulture,
-    authorId: 1,
+    // FIX: Changed author ID from number to string to match the DateIdea type.
+    authorId: '1',
     authorName: 'Chloe',
     authorImage: 'https://picsum.photos/seed/user1/100/100',
     budget: '$$',
@@ -101,7 +107,8 @@ export const MOCK_DATE_IDEAS: DateIdea[] = [
     title: 'Explore a Hidden Speakeasy in NYC',
     description: 'I\'ll be in New York for a weekend and have a password to a hidden jazz bar. Let\'s dress up, sip on some classic cocktails, and enjoy the live music. It feels like stepping back in time.',
     category: DateCategory.Nightlife,
-    authorId: 4,
+    // FIX: Changed author ID from number to string to match the DateIdea type.
+    authorId: '4',
     authorName: 'Leo',
     authorImage: 'https://picsum.photos/seed/user4/100/100',
     location: 'The Back Room, New York, NY',
@@ -115,7 +122,8 @@ export const MOCK_DATE_IDEAS: DateIdea[] = [
     title: 'Sunrise Hike and Brewery Tour',
     description: 'An early start for a rewarding view. We\'ll hike up to a scenic overlook to watch the sunrise, then head back down and celebrate our accomplishment with a tour and tasting at a local craft brewery. The best of both worlds!',
     category: DateCategory.ActiveAndFitness,
-    authorId: 3,
+    // FIX: Changed author ID from number to string to match the DateIdea type.
+    authorId: '3',
     authorName: 'Sophia',
     authorImage: 'https://picsum.photos/seed/user3/100/100',
     budget: '$$',
@@ -124,12 +132,15 @@ export const MOCK_DATE_IDEAS: DateIdea[] = [
 ];
 
 const match1_messages: Message[] = [
-    { id: 1, senderId: 1, text: "Hey! I loved your date idea about the pottery class, I'm terrible at art but it sounds fun!", timestamp: "10:30 AM" },
-    { id: 2, senderId: 0, text: "Haha thanks! Being terrible is half the fun. You're a musician, right? You must have some creative bones.", timestamp: "10:32 AM" },
+    // FIX: Changed sender ID from number to string to match the Message type.
+    { id: 1, senderId: '1', text: "Hey! I loved your date idea about the pottery class, I'm terrible at art but it sounds fun!", timestamp: "10:30 AM" },
+    // FIX: Changed sender ID from number to string to match the Message type.
+    { id: 2, senderId: '0', text: "Haha thanks! Being terrible is half the fun. You're a musician, right? You must have some creative bones.", timestamp: "10:32 AM" },
 ];
 
 const match2_messages: Message[] = [
-    { id: 1, senderId: 3, text: "A sunrise hike followed by a brewery sounds like my perfect day.", timestamp: "Yesterday" },
+    // FIX: Changed sender ID from number to string to match the Message type.
+    { id: 1, senderId: '3', text: "A sunrise hike followed by a brewery sounds like my perfect day.", timestamp: "Yesterday" },
 ];
 
 export const MOCK_MATCHES: Match[] = [
