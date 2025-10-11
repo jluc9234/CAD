@@ -13,8 +13,9 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onSwipe, matchPercentag
   const { isPremium } = usePremium();
 
   return (
-    <div className="absolute h-full w-full rounded-2xl overflow-hidden shadow-2xl transition-transform duration-500" style={{ perspective: '1000px' }}>
-      <div className="relative h-full w-full">
+    <div className="absolute h-full w-full" style={{ perspective: '1000px' }}>
+      {/* This inner div is the visual card and clips the image */}
+      <div className="relative h-full w-full rounded-2xl overflow-hidden shadow-2xl transition-transform duration-500">
         <img src={user.images[0]} alt={user.name} className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
         <div className="absolute bottom-0 left-0 p-6 text-white w-full">
@@ -40,6 +41,8 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onSwipe, matchPercentag
           </div>
         </div>
       </div>
+      
+      {/* Buttons are outside the clipping container, so they are fully visible */}
       <div className="absolute bottom-[-50px] left-1/2 -translate-x-1/2 flex items-center space-x-8">
         <button onClick={() => onSwipe('left')} className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-red-400 border-2 border-red-400 shadow-lg transform hover:scale-110 hover:bg-red-400/30 transition-all duration-300">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>

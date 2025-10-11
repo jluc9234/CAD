@@ -1,27 +1,30 @@
-/// <reference types="vite/client" />
-
 import React, { useState, useMemo, useEffect } from 'react';
 import ProfileCard from './ProfileCard';
 import { User } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { useNotification } from '../contexts/NotificationContext';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import { useMatch } from '../contexts/MatchContext';
+import { apiService } from '../services/apiService';
 
 const SwipeDeck: React.FC = () => {
   const { currentUser } = useAuth();
-  const { addNotification } = useNotification();
+  const { addMatch } = useMatch();
   const [users, setUsers] = useState<User[]>([]);
-  
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    if (!currentUser) return;
-    const token = localStorage.getItem('token');
-    fetch(`${API_BASE}/users`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(setUsers)
-      .catch(console.error);
+      const fetchUsers = async () => {
+          if(!currentUser) return;
+          setIsLoading(true);
+          try {
+              const usersToSwipe = await apiService.getUsersToSwipe(currentUser.id);
+              setUsers(usersToSwipe);
+          } catch (error) {
+              console.error("Failed to fetch users", error);
+          } finally {
+              setIsLoading(false);
+          }
+      };
+      fetchUsers();
   }, [currentUser]);
   
   const swipeableUsers = useMemo(() => 
@@ -35,60 +38,36 @@ const SwipeDeck: React.FC = () => {
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const handleSwipe = async (direction: 'left' | 'right') => {
+  const handleSwipe = (direction: 'left' | 'right') => {
+    if (currentIndex >= swipeableUsers.length) return;
+    
     const swipedUser = swipeableUsers[currentIndex];
     console.log(`Swiped ${direction} on ${swipedUser.name}`);
-    const action = direction === 'right' ? 'like' : 'pass';
     
-    // Send swipe to backend
-    const token = localStorage.getItem('token');
-    try {
-      // First, record the swipe
-      const swipeResponse = await fetch(`${API_BASE}/swipe`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ swipedUserId: swipedUser.id, action })
-      });
-
-      if (swipeResponse.ok && action === 'like') {
-        // Check if this created a match
-        const matchResponse = await fetch(`${API_BASE}/check-match`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ swipedUserId: swipedUser.id })
-        });
-
-        if (matchResponse.ok) {
-          const matchResult = await matchResponse.json();
-          if (matchResult.isMatch) {
-            // It's a match! Show notification
-            addNotification(`You matched with ${swipedUser.name}! 💕`, 'match');
-          }
+    if (direction === 'right') {
+        // Simulate a random match
+        if (Math.random() < 0.4) { // 40% chance to match
+            addMatch(swipedUser);
         }
-      }
-    } catch (error) {
-      console.error('Error processing swipe:', error);
     }
 
     // Animate out
     setTimeout(() => {
-        if (currentIndex < swipeableUsers.length - 1) {
-            setCurrentIndex(currentIndex + 1);
-        } else {
-            // End of stack, fetch more or show message
-            console.log("End of profiles");
-            setCurrentIndex(0); // Reset for demo
-            // Optionally refetch users
-        }
+        setCurrentIndex(prevIndex => prevIndex + 1);
     }, 300); // Wait for animation
   };
   
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center h-full text-white">
+            <svg className="animate-spin h-8 w-8 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </div>
+    )
+  }
+
   if (currentIndex >= swipeableUsers.length) {
     return (
         <div className="flex items-center justify-center h-full text-white text-xl p-8 text-center">

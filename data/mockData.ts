@@ -18,6 +18,8 @@ export const MOCK_USERS: User[] = [
         'https://picsum.photos/seed/user1f/800/1200',
     ],
     interests: ['Hiking', 'Painting', 'Indie Music', 'Travel'],
+    // FIX: Added missing isPremium property to conform to User type.
+    isPremium: true,
   },
   {
     id: 2,
@@ -32,6 +34,8 @@ export const MOCK_USERS: User[] = [
         'https://picsum.photos/seed/user2b/800/1200'
     ],
     interests: ['Guitar', 'Cooking', 'Sci-Fi Movies', 'Craft Beer'],
+    // FIX: Added missing isPremium property to conform to User type.
+    isPremium: false,
   },
   {
     id: 3,
@@ -46,6 +50,8 @@ export const MOCK_USERS: User[] = [
         'https://picsum.photos/seed/user3c/800/1200',
     ],
     interests: ['Yoga', 'Weightlifting', 'Brunch', 'Dogs'],
+    // FIX: Added missing isPremium property to conform to User type.
+    isPremium: false,
   },
   {
     id: 4,
@@ -60,6 +66,8 @@ export const MOCK_USERS: User[] = [
         'https://picsum.photos/seed/user4b/800/1200',
     ],
     interests: ['Dogs', 'Comedy', 'Cooking', 'Podcasts'],
+    // FIX: Added missing isPremium property to conform to User type.
+    isPremium: false,
   }
 ];
 
@@ -129,10 +137,14 @@ export const MOCK_MATCHES: Match[] = [
     id: 1,
     user: MOCK_USERS[0],
     messages: match1_messages,
+    // FIX: Added missing interestType property to conform to Match type.
+    interestType: 'swipe',
   },
   {
     id: 2,
     user: MOCK_USERS[2],
     messages: match2_messages,
+    // FIX: Added missing interestType property to conform to Match type.
+    interestType: 'swipe',
   }
 ];

@@ -25,6 +25,7 @@ export interface User {
   images: string[];
   interests: string[];
   background?: string; // Can be a data URL for uploaded/generated images
+  isPremium: boolean;
 }
 
 export interface DateIdea {
@@ -40,34 +41,38 @@ export interface DateIdea {
   isOutOfTown?: boolean;
   budget?: BudgetOption;
   dressCode?: DressCodeOption;
-  interestCount?: number;
-  hasInterested?: boolean;
-}
-
-export interface PersistentNotification {
-  id: number;
-  userId: number;
-  type: string;
-  message: string;
-  relatedId?: number;
-  isRead: boolean;
-  created_at: string;
 }
 
 export interface Message {
   id: number;
-  senderId: number; // 0 for current user, otherwise other user's id
+  senderId: number; // User ID of the sender
   text: string;
   timestamp: string;
 }
 
 export interface Match {
   id: number;
-  user: User;
+  user: User; // The other user in the match
   messages: Message[];
+  interestType: 'swipe' | 'date';
+  interestExpiresAt?: string | null; // ISO string for expiry, or null if permanent
+  dateIdeaId?: number;
+  dateAuthorId?: number;
 }
 
-export type ActiveView = 'swipe' | 'dates' | 'matches' | 'profile' | 'notifications';
+// This is how a match would be represented in a database
+export interface MatchData {
+    id: number;
+    participants: number[]; // Array of two user IDs
+    messages: Message[];
+    interestType: 'swipe' | 'date';
+    interestExpiresAt?: string | null;
+    dateIdeaId?: number;
+    dateAuthorId?: number;
+}
+
+
+export type ActiveView = 'swipe' | 'dates' | 'matches' | 'profile';
 
 export type NotificationType = 'match' | 'interest' | 'info';
 
@@ -75,6 +80,7 @@ export interface Notification {
   id: number;
   message: string;
   type: NotificationType;
+  read?: boolean;
 }
 
 export interface LocalIdea {
@@ -83,7 +89,7 @@ export interface LocalIdea {
 }
 
 export interface LocalEvent {
-    eventName: string;
+    eventName:string;
     description: string;
 }
 

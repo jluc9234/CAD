@@ -1,7 +1,7 @@
 {
-  "name": "create-a-date-app",
+  "name": "create-a-date:-ai-powered-dating",
   "private": true,
-  "version": "1.0.1",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,14 +10,11 @@
   },
   "dependencies": {
     "@google/genai": "^1.21.0",
-    "pg": "^8.12.0",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react": "^19.1.1"
   },
   "devDependencies": {
-    "@netlify/functions": "^4.2.7",
     "@types/node": "^22.14.0",
-    "@types/pg": "^8.11.6",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"

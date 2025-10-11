@@ -1,7 +1,6 @@
-/// <reference types="vite/client" />
-
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { User } from '../types';
+import { apiService } from '../services/apiService';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -13,65 +12,41 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const token = localStorage.getItem('token');
-    // For simplicity, don't fetch on init, assume user logs in again if needed
-    return null;
+    try {
+      const item = window.localStorage.getItem('currentUser');
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
   });
 
   const login = async (email: string, pass: string) => {
-    const response = await fetch(`${API_BASE}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pass })
-    });
-    const data = await response.json();
-    if (response.ok) {
-      setCurrentUser(data.user);
-      localStorage.setItem('token', data.token);
-    } else {
-      throw new Error(data.error);
+    const user = await apiService.login(email, pass);
+    if (user) {
+        setCurrentUser(user);
+        window.localStorage.setItem('currentUser', JSON.stringify(user));
     }
   };
 
   const signup = async (name: string, email: string, pass: string) => {
-    const response = await fetch(`${API_BASE}/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password: pass })
-    });
-    const data = await response.json();
-    if (response.ok) {
-      setCurrentUser(data.user);
-      localStorage.setItem('token', data.token);
-    } else {
-      throw new Error(data.error);
-    }
+    const newUser = await apiService.signup(name, email, pass);
+    setCurrentUser(newUser);
+    window.localStorage.setItem('currentUser', JSON.stringify(newUser));
   };
 
   const logout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('token');
+    window.localStorage.removeItem('currentUser');
   };
   
   const updateUser = async (updatedUser: User) => {
     if (!currentUser || currentUser.id !== updatedUser.id) return;
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE}/user/${updatedUser.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(updatedUser)
-    });
-    if (response.ok) {
-      const data = await response.json();
-      setCurrentUser(data);
-    } else {
-      // Handle error, perhaps throw
-      throw new Error('Update failed');
-    }
+    const user = await apiService.updateUser(updatedUser);
+    setCurrentUser(user);
+    window.localStorage.setItem('currentUser', JSON.stringify(user));
   };
 
   return (

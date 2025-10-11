@@ -4,23 +4,37 @@ import { Notification, NotificationType } from '../types';
 interface NotificationContextType {
   addNotification: (message: string, type: NotificationType) => void;
   notifications: Notification[];
+  toastQueue: Notification[];
+  markAllAsRead: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [toastQueue, setToastQueue] = useState<Notification[]>([]);
 
   const addNotification = useCallback((message: string, type: NotificationType) => {
     const id = Date.now();
-    setNotifications(prev => [...prev, { id, message, type }]);
+    const newNotification: Notification = { id, message, type, read: false };
+    
+    // Add to persistent list for the bell, newest first
+    setNotifications(prev => [newNotification, ...prev]);
+
+    // Add to temporary queue for toasts
+    setToastQueue(prev => [...prev, newNotification]);
     setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 5000); // Auto-dismiss after 5 seconds
+      setToastQueue(prev => prev.filter(n => n.id !== id));
+    }, 5000); // Auto-dismiss toast from queue after 5 seconds
+  }, []);
+  
+  const markAllAsRead = useCallback(() => {
+    setNotifications(prev => prev.map(n => n.read ? n : { ...n, read: true }));
   }, []);
 
+
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification }}>
+    <NotificationContext.Provider value={{ notifications, toastQueue, addNotification, markAllAsRead }}>
       {children}
     </NotificationContext.Provider>
   );

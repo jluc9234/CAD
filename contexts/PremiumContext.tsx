@@ -1,34 +1,24 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
 interface PremiumContextType {
   isPremium: boolean;
-  setPremium: (isPremium: boolean) => void;
 }
 
 const PremiumContext = createContext<PremiumContextType | undefined>(undefined);
 
 export const PremiumProvider = ({ children }: { children: ReactNode }) => {
-  const [isPremium, setIsPremium] = useState<boolean>(() => {
-    try {
-      const item = window.localStorage.getItem('isPremium');
-      return item ? JSON.parse(item) : false;
-    } catch (error) {
-      console.error(error);
-      return false;
-    }
-  });
+  const { currentUser } = useAuth();
+  const isPremium = currentUser?.isPremium || false;
 
-  const setPremium = (value: boolean) => {
-     try {
-        setIsPremium(value);
-        window.localStorage.setItem('isPremium', JSON.stringify(value));
-     } catch (error) {
-        console.error("Could not save premium status to localStorage", error);
-     }
-  };
+  // In a real Supabase application, the `isPremium` status would be part of the
+  // user's profile fetched from the database. A server-side webhook (e.g., from Stripe or PayPal)
+  // would trigger a Supabase Function to update the user's premium status in the database upon
+  // successful payment. The client would receive this update automatically via Supabase's
+  // real-time subscriptions, or upon the next data refetch.
 
   return (
-    <PremiumContext.Provider value={{ isPremium, setPremium }}>
+    <PremiumContext.Provider value={{ isPremium }}>
       {children}
     </PremiumContext.Provider>
   );

@@ -1,73 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import { DateIdea, DateInterestUpdate } from '../types';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from 'react';
+import { DateIdea } from '../types';
+import { useNotification } from '../contexts/NotificationContext';
 import { usePremium } from '../contexts/PremiumContext';
+import { useDateInteraction } from '../contexts/DateInteractionContext';
 import { MapPinIcon, getRandomGradient, PlaneIcon, CalendarIcon, CurrencyDollarIcon, TagIcon } from '../constants';
 import DirectionsModal from './DirectionsModal';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
 interface DateCardProps {
   dateIdea: DateIdea;
-  onInterestUpdate: (dateIdeaId: number, hasInterested: boolean, interestCount: number) => void;
 }
 
-const DateCard: React.FC<DateCardProps> = ({ dateIdea, onInterestUpdate }) => {
-  const [hasInterested, setHasInterested] = useState(Boolean(dateIdea.hasInterested));
-  const [interestCount, setInterestCount] = useState<number>(dateIdea.interestCount ?? 0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const DateCard: React.FC<DateCardProps> = ({ dateIdea }) => {
   const [isDirectionsModalOpen, setIsDirectionsModalOpen] = useState(false);
-  const { currentUser } = useAuth();
   const { isPremium } = usePremium();
+  const { interests, toggleInterest, isTogglingInterest } = useDateInteraction();
   const [buttonGradient] = useState(() => getRandomGradient());
 
-  useEffect(() => {
-    setHasInterested(Boolean(dateIdea.hasInterested));
-    setInterestCount(dateIdea.interestCount ?? 0);
-  }, [dateIdea.hasInterested, dateIdea.interestCount]);
+  const isInterested = interests.has(dateIdea.id);
+  const isLoading = isTogglingInterest.has(dateIdea.id);
 
-  const handleInterestClick = async () => {
-    console.log('Interest button clicked for date:', dateIdea.id);
-    setIsSubmitting(true);
-    const token = localStorage.getItem('token');
-    console.log('Token exists:', !!token);
-    // Optimistically update UI
-    setHasInterested(true);
-    setInterestCount(prev => prev + 1);
-    onInterestUpdate(dateIdea.id, true, (dateIdea.interestCount ?? 0) + 1);
-    setIsSubmitting(false);
-    try {
-      console.log('Calling API:', `${API_BASE}/date-ideas/${dateIdea.id}/interest`);
-      const response = await fetch(`${API_BASE}/date-ideas/${dateIdea.id}/interest`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      console.log('API response status:', response.status);
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API error:', errorText);
-        // Revert on failure
-        setHasInterested(Boolean(dateIdea.hasInterested));
-        setInterestCount(dateIdea.interestCount ?? 0);
-        onInterestUpdate(dateIdea.id, Boolean(dateIdea.hasInterested), dateIdea.interestCount ?? 0);
-        return;
-      }
-      const data: DateInterestUpdate = await response.json();
-      console.log('API response data:', data);
-      // Update with real data
-      setHasInterested(data.hasInterested);
-      setInterestCount(data.interestCount);
-      onInterestUpdate(dateIdea.id, data.hasInterested, data.interestCount);
-      console.log('Interest updated successfully');
-    } catch (error) {
-      console.error('Error expressing interest:', error);
-      // Revert on error
-      setHasInterested(Boolean(dateIdea.hasInterested));
-      setInterestCount(dateIdea.interestCount ?? 0);
-      onInterestUpdate(dateIdea.id, Boolean(dateIdea.hasInterested), dateIdea.interestCount ?? 0);
-    }
+  const handleInterestClick = () => {
+    toggleInterest(dateIdea);
   };
 
   const formattedDate = dateIdea.date ? new Date(dateIdea.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : null;
@@ -135,14 +88,11 @@ const DateCard: React.FC<DateCardProps> = ({ dateIdea, onInterestUpdate }) => {
             )}
             <button 
               onClick={handleInterestClick}
-              disabled={hasInterested || isSubmitting}
+              disabled={isLoading}
               className={`bg-gradient-to-r ${buttonGradient} text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-purple-500/40 transform hover:-translate-y-0.5 transition-all duration-300 text-sm disabled:opacity-60 disabled:transform-none disabled:shadow-none`}
             >
-              {hasInterested ? "Interest Sent ✓" : isSubmitting ? "Sending..." : "I'm Interested"}
+              {isLoading ? '...' : (isInterested ? "Interest Sent ✓" : "I'm Interested")}
             </button>
-            <span className="text-sm text-slate-400">
-              {interestCount} interested
-            </span>
           </div>
         </div>
       </div>
