@@ -2,13 +2,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { DateCategory, LocalIdea, LocalEvent, DateSuggestion, BudgetOption, DressCodeOption, Message, User } from "../types";
 import { DATE_CATEGORIES } from "../constants";
 
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-  throw new Error("API_KEY environment variable not set");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+// FIX: Per @google/genai guidelines, the API key must be retrieved from `process.env.API_KEY`
+// and the client should be initialized directly. The use of `import.meta.env` is incorrect.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const enhanceDescription = async (description: string): Promise<string> => {
   try {
