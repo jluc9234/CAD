@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect, useRef } from 'react';
 import { Match, User } from '../types';
 import { useNotification } from './NotificationContext';
 import { useAuth } from './AuthContext';
@@ -15,6 +15,9 @@ const MatchContext = createContext<MatchContextType | undefined>(undefined);
 
 export const MatchProvider = ({ children }: { children: ReactNode }) => {
   const [matches, setMatches] = useState<Match[]>([]);
+  const matchesRef = useRef(matches);
+  matchesRef.current = matches;
+
   const [isLoading, setIsLoading] = useState(true);
   const { addNotification } = useNotification();
   const { currentUser } = useAuth();
@@ -33,28 +36,50 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
   }, [currentUser]);
 
   useEffect(() => {
-    fetchMatches();
-  }, [fetchMatches]);
+    if (currentUser) {
+      fetchMatches(); // Initial fetch
+
+      const intervalId = setInterval(async () => {
+        if (document.hidden) return; // Don't poll if the tab is not active
+
+        try {
+          const newMatches = await apiService.getMatches(currentUser.id);
+          const currentMatches = matchesRef.current;
+
+          if (newMatches.length > currentMatches.length) {
+            const existingMatchIds = new Set(currentMatches.map(m => m.id));
+            const newMatch = newMatches.find(m => !existingMatchIds.has(m.id));
+            if (newMatch) {
+              addNotification(`You have a new match with ${newMatch.user.name}!`, 'match');
+            }
+          }
+          
+          setMatches(newMatches);
+        } catch (error) {
+          console.error("Background match fetch failed:", error);
+        }
+      }, 15000); // Poll for new matches every 15 seconds
+
+      return () => clearInterval(intervalId);
+    }
+  }, [currentUser, fetchMatches, addNotification]);
 
 
   const addMatch = useCallback(async (user: User) => {
     if (!currentUser) return;
 
-    // Prevent adding duplicate matches for a smoother UX
-    if (matches.some(match => match.user.id === user.id)) {
-      return;
-    }
-
     try {
-        await apiService.addMatch(currentUser.id, user.id);
-        // After successfully creating the match in the "backend", refetch the list
-        await fetchMatches();
-        addNotification(`You matched with ${user.name}! Send them a message.`, 'match');
+        const result = await apiService.addMatch(currentUser.id, user.id);
+        if (result.matched) {
+            // A mutual match was found and created in the backend.
+            await fetchMatches();
+            addNotification(`You matched with ${user.name}! Send them a message.`, 'match');
+        }
     } catch (error) {
-        console.error("Failed to add match:", error);
-        addNotification(`Could not create match with ${user.name}.`, 'info');
+        console.error("Failed to process right swipe:", error);
+        addNotification(`Could not process swipe on ${user.name}.`, 'info');
     }
-  }, [matches, addNotification, currentUser, fetchMatches]);
+  }, [currentUser, fetchMatches, addNotification]);
 
 
   return (

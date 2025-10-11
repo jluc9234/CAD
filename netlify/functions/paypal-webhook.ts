@@ -1,7 +1,6 @@
 import { Handler } from '@netlify/functions';
 import fetch from 'node-fetch';
 import { pool } from './utils/db';
-// FIX: Added import for Buffer to resolve TypeScript error in Node.js environment.
 import { Buffer } from 'buffer';
 
 interface PayPalOrder {
@@ -25,7 +24,8 @@ async function verifyPayPalWebhook(event: any): Promise<boolean> {
   
   try {
     const auth = Buffer.from(`${paypalClientId}:${paypalClientSecret}`).toString('base64');
-    const tokenResponse = await fetch('https://api-m.sandbox.paypal.com/v1/oauth2/token', { // Use api-m.paypal.com for production
+    // FIX: Switched to sandbox URL to match the frontend client ID.
+    const tokenResponse = await fetch('https://api-m.sandbox.paypal.com/v1/oauth2/token', {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${auth}`,
@@ -36,7 +36,8 @@ async function verifyPayPalWebhook(event: any): Promise<boolean> {
 
     const { access_token } = await tokenResponse.json();
 
-    const verificationResponse = await fetch('https://api-m.sandbox.paypal.com/v1/notifications/verify-webhook-signature', { // Use api-m.paypal.com for production
+    // FIX: Switched to sandbox URL to match the frontend client ID.
+    const verificationResponse = await fetch('https://api-m.sandbox.paypal.com/v1/notifications/verify-webhook-signature', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${access_token}`,
@@ -81,7 +82,8 @@ export const handler: Handler = async (event) => {
         return { statusCode: 400, body: 'Bad Request: Missing userId' };
       }
 
-      // Update user profile in Neon DB
+      // Update user profile in Neon DB. The app consistently uses 'isPremium',
+      // so we update that field to maintain consistency.
       await pool.query('UPDATE users SET "isPremium" = true WHERE id = $1', [userId]);
       console.log(`Successfully upgraded user ${userId} to premium.`);
     }

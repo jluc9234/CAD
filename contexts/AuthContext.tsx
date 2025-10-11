@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { User } from '../types';
 import { apiService } from '../services/apiService';
 import { jwtDecode } from 'jwt-decode';
@@ -9,6 +9,7 @@ interface AuthContextType {
   logout: () => void;
   signup: (name: string, email: string, pass: string) => Promise<void>;
   updateUser: (updatedUser: User) => void;
+  refetchUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,36 +18,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchAndSetUser = useCallback(async () => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      try {
+        const decodedToken: { id: string } = jwtDecode(token);
+        const userProfile = await apiService.getUserProfile(decodedToken.id);
+        setCurrentUser(userProfile);
+      } catch (error) {
+        console.error("Session check failed:", error);
+        localStorage.removeItem('authToken');
+        setCurrentUser(null);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const checkLoggedInUser = async () => {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        try {
-          // You could decode to check for expiry here if needed
-          const decodedToken: { id: string } = jwtDecode(token);
-          const userProfile = await apiService.getUserProfile(decodedToken.id);
-          setCurrentUser(userProfile);
-        } catch (error) {
-          console.error("Session check failed:", error);
-          // Token is invalid or expired, so log out
-          localStorage.removeItem('authToken');
-          setCurrentUser(null);
-        }
-      }
+      await fetchAndSetUser();
       setLoading(false);
     };
 
     checkLoggedInUser();
-  }, []);
-
-  const fetchAndSetUser = async () => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        const decodedToken: { id: string } = jwtDecode(token);
-        const userProfile = await apiService.getUserProfile(decodedToken.id);
-        setCurrentUser(userProfile);
-    }
-  };
+  }, [fetchAndSetUser]);
 
   const login = async (email: string, pass: string) => {
     await apiService.login(email, pass);
@@ -69,20 +63,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setCurrentUser(user);
   };
 
+  const refetchUser = useCallback(async () => {
+    await fetchAndSetUser();
+  }, [fetchAndSetUser]);
+
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout, signup, updateUser }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, signup, updateUser, refetchUser }}>
       {!loading && children}
     </AuthContext.Provider>
   );
 };
-
-// Add jwt-decode to the importmap or as a script tag to make it available globally
-// A simple way to do this without changing index.html for this context
-// is to dynamically load the script.
-const script = document.createElement('script');
-script.src = 'https://unpkg.com/jwt-decode@4.0.0/build/jwt-decode.js';
-script.async = true;
-document.head.appendChild(script);
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);

@@ -50,10 +50,8 @@ const SwipeDeck: React.FC = () => {
     console.log(`Swiped ${direction} on ${swipedUser.name}`);
     
     if (direction === 'right') {
-        // Simulate a random match
-        if (Math.random() < 0.4) { // 40% chance to match
-            addMatch(swipedUser);
-        }
+        // The addMatch function now handles the full swipe logic on the backend.
+        addMatch(swipedUser);
     }
 
     // Animate out

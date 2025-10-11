@@ -15,7 +15,7 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    {/* FIX: Corrected self-closing provider components. Providers must wrap their children to pass down context, so they are now correctly nested. */}
+    {/* FIX: Context providers must wrap their child components. They were previously self-closed, which caused errors because the 'children' prop was missing. */}
     <AuthProvider>
       <PremiumProvider>
         <NotificationProvider>

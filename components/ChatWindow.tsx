@@ -25,7 +25,7 @@ const getTimeRemaining = (expiry: string): string => {
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ match: initialMatch, onBack, onPremiumClick }) => {
     const [match, setMatch] = useState(initialMatch);
-    const [messages, setMessages] = useState<Message[]>(match.messages);
+    const [messages, setMessages] = useState<Message[]>(initialMatch.messages);
     const [inputText, setInputText] = useState('');
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
     const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -37,6 +37,25 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ match: initialMatch, onBack, on
     useEffect(() => {
         endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
+
+    // Polling for new messages to create a real-time chat experience
+    useEffect(() => {
+        const intervalId = setInterval(async () => {
+            if (!document.hidden) { // Only poll when the tab is active
+                try {
+                    const latestMessages = await apiService.getMessagesForMatch(initialMatch.id);
+                    // Only update state if there are new messages to avoid re-renders
+                    if (latestMessages.length > messages.length) {
+                        setMessages(latestMessages);
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch new messages:", error);
+                }
+            }
+        }, 3000); // Poll every 3 seconds
+
+        return () => clearInterval(intervalId);
+    }, [initialMatch.id, messages.length]);
     
     // Derived state for chat logic
     const { isDateInterest, isExpired, isCurrentUserAuthor, isInputDisabled, bannerMessage } = useMemo(() => {

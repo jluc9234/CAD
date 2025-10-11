@@ -1,6 +1,6 @@
 import { User, DateIdea, Match, Message } from '../types';
 
-const API_PREFIX = '/.netlify/functions';
+const API_PREFIX = '/api';
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('authToken');
@@ -85,7 +85,7 @@ export const apiService = {
     return apiFetch(`/get-matches`);
   },
 
-  async addMatch(currentUserId: string, targetUserId: string): Promise<void> {
+  async addMatch(currentUserId: string, targetUserId: string): Promise<{ matched: boolean }> {
     return apiFetch('/add-match', {
         method: 'POST',
         body: JSON.stringify({ targetUserId }),
@@ -106,6 +106,10 @@ export const apiService = {
     });
   },
   
+  async getMessagesForMatch(matchId: number): Promise<Message[]> {
+      return apiFetch(`/get-messages?matchId=${matchId}`);
+  },
+
   async sendMessage(matchId: number, senderId: string, text: string): Promise<Message> {
       return apiFetch('/send-message', {
           method: 'POST',

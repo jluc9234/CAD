@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { SparklesIcon, getRandomGradient } from '../constants';
 import { useNotification } from '../contexts/NotificationContext';
+import { apiService } from '../services/apiService';
 
 interface MonetizationModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface MonetizationModalProps {
 }
 
 const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, refetchUser } = useAuth();
   const { addNotification } = useNotification();
   const [iconGradient] = useState(() => getRandomGradient());
   const [titleGradient] = useState(() => getRandomGradient());
@@ -40,9 +41,26 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
             onApprove: async (_data: any, actions: any) => {
                 const order = await actions.order.capture();
                 console.log("Payment successful:", order);
-                addNotification("Payment successful! Your premium status will be updated shortly.", 'info');
-                // The backend webhook will handle the database update.
-                onClose();
+                addNotification("Payment successful! Your premium status is being updated...", 'info');
+                
+                onClose(); // Close modal immediately
+
+                // Poll for status update in the background
+                let attempts = 0;
+                const intervalId = setInterval(async () => {
+                    attempts++;
+                    const updatedUser = await apiService.getCurrentUserProfile();
+                    // Stop polling if the user is now premium or after 10 attempts (30 seconds)
+                    if (updatedUser?.isPremium || attempts >= 10) {
+                        clearInterval(intervalId);
+                        await refetchUser(); // Update global auth context state
+                        if (updatedUser?.isPremium) {
+                            addNotification("Welcome to Premium! All features are now unlocked.", 'info');
+                        } else {
+                            addNotification("Could not confirm premium status automatically. Please refresh the page.", 'info');
+                        }
+                    }
+                }, 3000);
             },
             onError: (err: any) => {
                 console.error("PayPal Error:", err);
@@ -50,7 +68,7 @@ const MonetizationModal: React.FC<MonetizationModalProps> = ({ isOpen, onClose }
             }
         }).render(paypalRef.current);
     }
-  }, [isOpen, currentUser]);
+  }, [isOpen, currentUser, addNotification, onClose, refetchUser]);
 
 
   if (!isOpen) return null;

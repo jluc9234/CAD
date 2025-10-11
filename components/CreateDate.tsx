@@ -286,7 +286,7 @@ const CreateDate: React.FC<CreateDateProps> = ({ onBack, onPostDate, onPremiumCl
                 
                 <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 mb-6 shadow-inner space-y-4">
                     <h2 className="text-xl font-bold text-center mb-2 text-slate-300 tracking-wide">✨ AI Magic Wand ✨</h2>
-                    {/* FIX: The AiPowerUp component was previously self-closed, which is invalid as it requires children. It is now correctly wrapping its content. */}
+                    {/* FIX: The AiPowerUp component expects children and was previously self-closed. It now correctly wraps its content. */}
                     <AiPowerUp title="Generate Idea From Keywords" onClick={onPremiumClick}>
                          <div className="flex items-center space-x-2">
                              <input 
@@ -307,7 +307,7 @@ const CreateDate: React.FC<CreateDateProps> = ({ onBack, onPostDate, onPremiumCl
                              </button>
                          </div>
                     </AiPowerUp>
-                    {/* FIX: The AiPowerUp component was previously self-closed, which is invalid as it requires children. It is now correctly wrapping its content. */}
+                    {/* FIX: The AiPowerUp component expects children and was previously self-closed. It now correctly wraps its content. */}
                     <AiPowerUp title="Suggest Dates From Details" onClick={onPremiumClick}>
                         <div className="space-y-3">
                             <p className="text-xs text-slate-400">Fill in any details below (title, location, date, etc.) and let AI suggest tailored ideas for you!</p>
